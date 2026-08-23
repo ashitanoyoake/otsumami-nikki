@@ -319,9 +319,15 @@ main {
 }
 
 .profile-intro {
-  max-width: 560px;
   margin: 0 auto;
   text-align: center;
+}
+
+.home-profile-frame {
+  padding: 1.6rem 1.5rem 1.3rem;
+  border: 1px dashed rgba(200, 135, 74, 0.4);
+  background-color: #ffffff;
+  box-sizing: border-box;
 }
 
 .home-profile-detail .profile-image-placeholder,
@@ -1245,6 +1251,15 @@ main {
 
   .home-profile-detail {
     margin-bottom: 3rem;
+  }
+
+  .home-profile-frame {
+    padding: 1.2rem 0.9rem 1rem;
+  }
+
+  .home-profile-detail .profile-text p {
+    font-size: 0.8rem;
+    letter-spacing: 0.02em;
   }
 
   .home-guide {
