@@ -594,6 +594,12 @@ main {
   line-height: 1.7;
 }
 
+a.home-works-item,
+a.home-works-item:hover {
+  color: inherit;
+  text-decoration: none;
+}
+
 
 /* ========================================
    Instagram ギャラリー
