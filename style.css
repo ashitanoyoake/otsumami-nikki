@@ -372,6 +372,31 @@ main {
   margin-bottom: 0;
 }
 
+.profile-sns {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+  gap: 0.25rem 1.15rem;
+  margin: 0.95rem 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.profile-sns a {
+  color: var(--accent);
+  font-size: 0.76rem;
+  letter-spacing: 0.04em;
+  line-height: 1.5;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.profile-sns a:hover {
+  color: var(--accent);
+  opacity: 0.72;
+}
+
 .home-guide {
   margin-bottom: 5rem;
 }
@@ -1285,6 +1310,10 @@ a.home-works-item:hover {
   .home-profile-detail .profile-text p {
     font-size: 0.8rem;
     letter-spacing: 0.02em;
+  }
+
+  .profile-sns a {
+    font-size: 0.68rem;
   }
 
   .home-guide {
