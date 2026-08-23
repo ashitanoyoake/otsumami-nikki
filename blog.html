@@ -10,7 +10,7 @@
 
   <header class="site-header">
     <a href="index.html" class="site-logo">
-      <div class="placeholder logo-placeholder">ロゴ予定</div>
+      <img src="images/logo.png" alt="" class="site-logo-image" width="48" height="48">
       <span>おつまみ日記！</span>
     </a>
     <nav aria-label="メインナビゲーション">
@@ -30,41 +30,88 @@
         <div class="placeholder deco-placeholder">イラスト予定</div>
       </div>
       <h1 class="page-title">ブログ</h1>
-      <p class="page-lead">制作の裏側やイラストに込めた想いを綴っています。</p>
+      <p class="page-lead">日々のことや、制作の裏側、好きなもののことなどを綴っています。</p>
     </header>
 
-    <ul class="blog-list">
-      <li>
-        <a href="#" class="blog-item-link">
-          <div class="blog-item-body">
-            <span class="blog-date">2026.06</span>
-            <span class="blog-title">制作メモ：夏のイラストを描くまで</span>
-            <p class="blog-excerpt">ラフ案から色付け、仕上げまでの流れをまとめました。（仮）</p>
+    <nav class="blog-categories" aria-label="ブログカテゴリー">
+      <ul class="blog-category-list">
+        <li><a href="blog.html" class="blog-category-link is-current">すべて</a></li>
+        <li><a href="blog.html?category=news" class="blog-category-link">お知らせ</a></li>
+        <li><a href="blog.html?category=illustration" class="blog-category-link">イラスト</a></li>
+        <li><a href="blog.html?category=diary" class="blog-category-link">制作日記</a></li>
+        <li><a href="blog.html?category=daily" class="blog-category-link">日々のこと</a></li>
+      </ul>
+    </nav>
+
+    <div class="blog-entries">
+
+      <article
+        class="blog-entry"
+        data-slug="natsu-illustration"
+        data-category="diary"
+        data-status="published"
+      >
+        <a href="blog/natsu-illustration/" class="blog-entry-link">
+          <div class="blog-entry-info">
+            <div class="blog-entry-meta">
+              <time class="blog-entry-date" datetime="2026-08-20">2026.08.20</time>
+              <span class="blog-entry-category">制作日記</span>
+            </div>
+            <h2 class="blog-entry-title">制作メモ：夏のイラストを描くまで</h2>
+            <p class="blog-entry-summary">ラフ案から色付け、仕上げまでの流れをまとめました。</p>
           </div>
-          <span class="blog-arrow">→</span>
+          <figure class="blog-entry-eyecatch">
+            <div class="blog-eyecatch-placeholder" role="img" aria-label="アイキャッチ予定">アイキャッチ予定</div>
+          </figure>
+          <span class="blog-entry-arrow" aria-hidden="true">→</span>
         </a>
-      </li>
-      <li>
-        <a href="#" class="blog-item-link">
-          <div class="blog-item-body">
-            <span class="blog-date">2026.03</span>
-            <span class="blog-title">制作メモ：春のイラストを描くまで</span>
-            <p class="blog-excerpt">色の選び方や、構図を決めるときのポイントについて。（仮）</p>
+      </article>
+
+      <article
+        class="blog-entry"
+        data-slug="watercolor-set"
+        data-category="illustration"
+        data-status="published"
+      >
+        <a href="blog/watercolor-set/" class="blog-entry-link">
+          <div class="blog-entry-info">
+            <div class="blog-entry-meta">
+              <time class="blog-entry-date" datetime="2026-07-12">2026.07.12</time>
+              <span class="blog-entry-category">イラスト</span>
+            </div>
+            <h2 class="blog-entry-title">新しい水彩セットを試してみた</h2>
+            <p class="blog-entry-summary">最近使い始めた水彩セットの使い心地などを書いています。</p>
           </div>
-          <span class="blog-arrow">→</span>
+          <figure class="blog-entry-eyecatch">
+            <div class="blog-eyecatch-placeholder" role="img" aria-label="アイキャッチ予定">アイキャッチ予定</div>
+          </figure>
+          <span class="blog-entry-arrow" aria-hidden="true">→</span>
         </a>
-      </li>
-      <li>
-        <a href="#" class="blog-item-link">
-          <div class="blog-item-body">
-            <span class="blog-date">2026.01</span>
-            <span class="blog-title">展示参加レポート</span>
-            <p class="blog-excerpt">グループ展に参加したときの様子や感想を書きました。（仮）</p>
+      </article>
+
+      <article
+        class="blog-entry"
+        data-slug="cafe-sketch"
+        data-category="daily"
+        data-status="published"
+      >
+        <a href="blog/cafe-sketch/" class="blog-entry-link">
+          <div class="blog-entry-info">
+            <div class="blog-entry-meta">
+              <time class="blog-entry-date" datetime="2026-06-28">2026.06.28</time>
+              <span class="blog-entry-category">日々のこと</span>
+            </div>
+            <h2 class="blog-entry-title">お気に入りのカフェでスケッチ</h2>
+            <p class="blog-entry-summary">静かなカフェでのスケッチタイムについて。</p>
           </div>
-          <span class="blog-arrow">→</span>
+          <figure class="blog-entry-eyecatch">
+            <div class="blog-eyecatch-placeholder" role="img" aria-label="アイキャッチ予定">アイキャッチ予定</div>
+          </figure>
+          <span class="blog-entry-arrow" aria-hidden="true">→</span>
         </a>
-      </li>
-    </ul>
+      </article>
+
+    </div>
   </main>
 
   <footer class="site-footer">

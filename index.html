@@ -10,7 +10,7 @@
 
   <header class="site-header">
     <a href="index.html" class="site-logo">
-      <div class="placeholder logo-placeholder">ロゴ予定</div>
+      <img src="images/logo.png" alt="" class="site-logo-image" width="48" height="48">
       <span>おつまみ日記！</span>
     </a>
     <nav aria-label="メインナビゲーション">
@@ -34,27 +34,23 @@
 
     <section id="profile" class="home-profile-detail" aria-label="プロフィール">
       <div class="profile-intro">
-        <div class="placeholder profile-image-placeholder">プロフィール画像予定</div>
+        <img src="images/profile.png" alt="プロフィール画像" class="profile-image" width="160" height="160">
+        <p class="profile-name">ツマミ／TSUMAMI</p>
         <div class="profile-text">
-          <p>
-            書籍・Web・グッズなど幅広い媒体で活動しています。
-            やさしいタッチとストーリー性のある表現を大切にしています。
-          </p>
-          <p>
-            日常の小さな出来事や、物語の世界観をテーマにしたイラスト制作を中心に、
-            オリジナル作品の発表や展示参加も行っています。
-          </p>
+          <p>イラストを描いたり、好きなものを楽しんだり。</p>
+          <p>日々のあれこれをマイペースに記録しています。</p>
         </div>
       </div>
+      <hr class="stitch-rule">
     </section>
 
     <section class="home-guide" aria-label="サイト案内">
       <div class="guide-cards">
         <article>
           <a href="instagram.html" class="guide-card-link">
-            <div class="placeholder guide-icon-placeholder">イラスト予定</div>
+            <img src="images/instagram.png" alt="" class="guide-icon-image guide-icon-image-instagram" width="96" height="96">
             <h2 class="guide-card-title">Instagram</h2>
-            <p class="guide-card-text">最新のイラストや制作過程をInstagramで公開しています。</p>
+            <p class="guide-card-text">いろいろな日常を記録中<br>(・ω・)つ⊹₊˚✧･</p>
             <span class="guide-card-more">見る →</span>
           </a>
         </article>
@@ -75,19 +71,21 @@
           </a>
         </article>
       </div>
+      <hr class="stitch-rule">
     </section>
 
     <div class="home-sections" aria-label="最新コンテンツ">
 
       <section class="home-section" aria-label="最新Instagram">
         <h2 class="section-heading">最新 Instagram</h2>
-        <p class="section-lead">最新の投稿をピックアップしています。</p>
+        <p class="section-lead">いろいろな日常を記録中 (・ω・)つ⊹₊˚✧･</p>
         <div class="thumb-row thumb-row-3">
           <div class="placeholder thumb-placeholder">作品画像予定</div>
           <div class="placeholder thumb-placeholder">作品画像予定</div>
           <div class="placeholder thumb-placeholder">作品画像予定</div>
         </div>
         <p class="section-link"><a href="instagram.html">もっと見る →</a></p>
+        <hr class="stitch-rule">
       </section>
 
       <section class="home-section" aria-label="お仕事紹介">
@@ -113,31 +111,78 @@
         <p class="section-link"><a href="works.html">もっと見る →</a></p>
       </section>
 
-      <section class="home-section" aria-label="最新ブログ">
+      <section class="home-section home-latest-blog" aria-label="最新ブログ">
         <h2 class="section-heading">最新ブログ</h2>
         <p class="section-lead">最新の記事をピックアップしています。</p>
-        <ul class="blog-list home-blog-list">
-          <li>
-            <a href="#" class="blog-item-link">
-              <div class="blog-item-body">
-                <span class="blog-date">2026.06</span>
-                <span class="blog-title">制作メモ：夏のイラストを描くまで</span>
-                <p class="blog-excerpt">ラフ案から色付け、仕上げまでの流れをまとめました。（仮）</p>
+        <div class="home-blog-entries">
+
+          <article
+            class="home-blog-entry"
+            data-slug="natsu-illustration"
+            data-category="diary"
+            data-status="published"
+          >
+            <a href="blog/natsu-illustration/" class="home-blog-entry-link">
+              <div class="home-blog-entry-info">
+                <div class="home-blog-entry-meta">
+                  <time class="home-blog-entry-date" datetime="2026-08-20">2026.08.20</time>
+                  <span class="home-blog-entry-category">制作日記</span>
+                </div>
+                <h3 class="home-blog-entry-title">制作メモ：夏のイラストを描くまで</h3>
+                <p class="home-blog-entry-summary">ラフ案から色付け、仕上げまでの流れをまとめました。</p>
               </div>
-              <span class="blog-arrow">→</span>
+              <figure class="home-blog-entry-eyecatch">
+                <div class="home-blog-eyecatch-placeholder" role="img" aria-label="アイキャッチ予定">アイキャッチ予定</div>
+              </figure>
+              <span class="home-blog-entry-arrow" aria-hidden="true">→</span>
             </a>
-          </li>
-          <li>
-            <a href="#" class="blog-item-link">
-              <div class="blog-item-body">
-                <span class="blog-date">2026.03</span>
-                <span class="blog-title">制作メモ：春のイラストを描くまで</span>
-                <p class="blog-excerpt">色の選び方や、構図を決めるときのポイントについて。（仮）</p>
+          </article>
+
+          <article
+            class="home-blog-entry"
+            data-slug="watercolor-set"
+            data-category="illustration"
+            data-status="published"
+          >
+            <a href="blog/watercolor-set/" class="home-blog-entry-link">
+              <div class="home-blog-entry-info">
+                <div class="home-blog-entry-meta">
+                  <time class="home-blog-entry-date" datetime="2026-07-12">2026.07.12</time>
+                  <span class="home-blog-entry-category">イラスト</span>
+                </div>
+                <h3 class="home-blog-entry-title">新しい水彩セットを試してみた</h3>
+                <p class="home-blog-entry-summary">最近使い始めた水彩セットの使い心地などを書いています。</p>
               </div>
-              <span class="blog-arrow">→</span>
+              <figure class="home-blog-entry-eyecatch">
+                <div class="home-blog-eyecatch-placeholder" role="img" aria-label="アイキャッチ予定">アイキャッチ予定</div>
+              </figure>
+              <span class="home-blog-entry-arrow" aria-hidden="true">→</span>
             </a>
-          </li>
-        </ul>
+          </article>
+
+          <article
+            class="home-blog-entry"
+            data-slug="cafe-sketch"
+            data-category="daily"
+            data-status="published"
+          >
+            <a href="blog/cafe-sketch/" class="home-blog-entry-link">
+              <div class="home-blog-entry-info">
+                <div class="home-blog-entry-meta">
+                  <time class="home-blog-entry-date" datetime="2026-06-28">2026.06.28</time>
+                  <span class="home-blog-entry-category">日々のこと</span>
+                </div>
+                <h3 class="home-blog-entry-title">お気に入りのカフェでスケッチ</h3>
+                <p class="home-blog-entry-summary">静かなカフェでのスケッチタイムについて。</p>
+              </div>
+              <figure class="home-blog-entry-eyecatch">
+                <div class="home-blog-eyecatch-placeholder" role="img" aria-label="アイキャッチ予定">アイキャッチ予定</div>
+              </figure>
+              <span class="home-blog-entry-arrow" aria-hidden="true">→</span>
+            </a>
+          </article>
+
+        </div>
         <p class="section-link"><a href="blog.html">もっと見る →</a></p>
       </section>
 
