@@ -421,9 +421,29 @@ main {
 .home-sections {
   display: flex;
   flex-direction: column;
-  gap: 5rem;
+  gap: 2.4rem;
 }
 
+.home-block-intro {
+  text-align: center;
+  margin-bottom: 1.4rem;
+}
+
+.home-block-intro .guide-icon-image,
+.home-block-intro .guide-icon-placeholder {
+  margin-bottom: 0.8rem;
+}
+
+.home-block-intro .section-heading {
+  margin-bottom: 0.5rem;
+}
+
+.home-block-intro .section-lead {
+  margin-bottom: 0;
+}
+
+.home-instagram,
+.home-works,
 .home-latest-blog {
   padding: 1.6rem 1.5rem 1.3rem;
   border: 1px dashed rgba(200, 135, 74, 0.4);
@@ -1220,7 +1240,6 @@ main {
 
   /* display:contents により main の .content-inner が効かないため再適用 */
   body.home-page-body .home-profile-detail,
-  body.home-page-body .home-guide,
   body.home-page-body .home-sections {
     order: 4;
     max-width: var(--content-max);
@@ -1281,7 +1300,7 @@ main {
   }
 
   .home-sections {
-    gap: 3.5rem;
+    gap: 2rem;
   }
 
   /* --- 共通 --- */
@@ -1300,10 +1319,39 @@ main {
     margin-bottom: 1.2rem;
   }
 
-  .thumb-row-3,
+  .thumb-row-3 {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0.5rem;
+  }
+
   .home-works-list {
-    grid-template-columns: repeat(2, 1fr);
-    gap: 0.8rem;
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+
+  .home-works-item {
+    display: grid;
+    grid-template-columns: 5.6rem 1fr;
+    grid-template-areas:
+      "thumb title"
+      "thumb desc";
+    column-gap: 0.85rem;
+    row-gap: 0.2rem;
+    align-items: start;
+  }
+
+  .home-works-item .thumb-placeholder {
+    grid-area: thumb;
+    width: 100%;
+  }
+
+  .home-works-item h3 {
+    grid-area: title;
+    margin: 0.15rem 0 0;
+  }
+
+  .home-works-item p {
+    grid-area: desc;
   }
 
   .gallery-instagram {
@@ -1425,6 +1473,8 @@ main {
   }
 
   /* --- ホーム：最新ブログ --- */
+  .home-instagram,
+  .home-works,
   .home-latest-blog {
     padding: 1.2rem 0.9rem 1rem;
   }
