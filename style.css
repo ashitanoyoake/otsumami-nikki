@@ -281,7 +281,8 @@ main {
   object-fit: contain;
 }
 
-.guide-icon-image-instagram {
+.guide-icon-image-instagram,
+.guide-icon-image-blog {
   width: 96px;
   height: 96px;
 }
@@ -1329,7 +1330,8 @@ a.home-works-item:hover {
     padding: 1.5rem 1rem;
   }
 
-  .guide-icon-image-instagram {
+  .guide-icon-image-instagram,
+  .guide-icon-image-blog {
     width: 96px;
     height: 96px;
   }
