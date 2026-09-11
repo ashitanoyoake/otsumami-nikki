@@ -615,6 +615,14 @@ main {
   gap: 1rem;
 }
 
+.home-works-item img {
+  display: block;
+  width: 100%;
+  aspect-ratio: 3 / 2;
+  object-fit: cover;
+  border-radius: 4px;
+}
+
 .home-works-item h3 {
   margin: 0.8rem 0 0.3rem;
   font-size: 0.85rem;
@@ -744,6 +752,37 @@ a.home-works-item:hover {
   font-size: 1.05rem;
   color: #ccc;
   line-height: 1;
+}
+
+.works-entry-production {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.2rem 0.9rem;
+  margin: 0.35rem 0 0;
+  padding: 0;
+  list-style: none;
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  line-height: 1.7;
+}
+
+.works-entry-production-label::after {
+  content: "：";
+}
+
+.works-list-message,
+.blog-list-message,
+.home-list-message {
+  margin: 1.6rem 0 0;
+  color: var(--text-muted);
+  text-align: center;
+  font-size: 0.9rem;
+  letter-spacing: 0.04em;
+}
+
+.home-works-list .home-list-message {
+  grid-column: 1 / -1;
+  margin-top: 0;
 }
 
 
@@ -1015,6 +1054,16 @@ a.home-works-item:hover {
   letter-spacing: 0.06em;
   color: #888;
   border-bottom: 2px solid transparent;
+}
+
+button.blog-category-link {
+  appearance: none;
+  background: none;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  cursor: pointer;
+  font-family: inherit;
+  line-height: inherit;
 }
 
 .blog-category-link:hover,

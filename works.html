@@ -33,68 +33,9 @@
       <p class="page-lead">これまでに制作したイラストやご依頼作品をご紹介します。</p>
     </header>
 
-    <div class="works-entries">
-
-      <article
-        class="works-entry"
-        data-slug="jido-sashie"
-        data-category="illustration"
-        data-year="2025"
-        data-status="published"
-      >
-        <a href="works/children-book-illustration/" class="works-entry-link">
-          <figure class="works-entry-thumb">
-            <div class="works-thumb-placeholder" role="img" aria-label="作品画像予定">作品画像予定</div>
-          </figure>
-          <div class="works-entry-info">
-            <span class="works-entry-category">イラスト</span>
-            <h2 class="works-entry-title">サンプル作品 01</h2>
-            <p class="works-entry-summary">作品紹介のサンプルテキストです。</p>
-          </div>
-          <span class="works-entry-arrow" aria-hidden="true">→</span>
-        </a>
-      </article>
-
-      <article
-        class="works-entry"
-        data-slug="web-renzai"
-        data-category="illustration"
-        data-year="2024"
-        data-status="published"
-      >
-        <a href="works/web-renzai/" class="works-entry-link">
-          <figure class="works-entry-thumb">
-            <div class="works-thumb-placeholder" role="img" aria-label="作品画像予定">作品画像予定</div>
-          </figure>
-          <div class="works-entry-info">
-            <span class="works-entry-category">イラスト</span>
-            <h2 class="works-entry-title">サンプル作品 02</h2>
-            <p class="works-entry-summary">作品紹介のサンプルテキストです。</p>
-          </div>
-          <span class="works-entry-arrow" aria-hidden="true">→</span>
-        </a>
-      </article>
-
-      <article
-        class="works-entry"
-        data-slug="original-goods"
-        data-category="design-illustration"
-        data-year="2023"
-        data-status="published"
-      >
-        <a href="works/original-goods/" class="works-entry-link">
-          <figure class="works-entry-thumb">
-            <div class="works-thumb-placeholder" role="img" aria-label="作品画像予定">作品画像予定</div>
-          </figure>
-          <div class="works-entry-info">
-            <span class="works-entry-category">デザイン・イラスト</span>
-            <h2 class="works-entry-title">サンプル作品 03</h2>
-            <p class="works-entry-summary">作品紹介のサンプルテキストです。</p>
-          </div>
-          <span class="works-entry-arrow" aria-hidden="true">→</span>
-        </a>
-      </article>
-
+    <div data-works-list-root>
+      <div class="works-entries" hidden></div>
+      <p class="works-list-message">読み込み中...</p>
     </div>
   </main>
 
@@ -103,5 +44,7 @@
     <p class="footer-copy">© 2026 おつまみ日記！</p>
   </footer>
 
+  <script src="js/cms-lists-common.js"></script>
+  <script src="js/works-list.js"></script>
 </body>
 </html>

@@ -70,22 +70,8 @@
           <h2 class="section-heading">お仕事</h2>
           <p class="section-lead">これまでに制作したイラストやご依頼作品をご紹介します。</p>
         </div>
-        <div class="home-works-list">
-          <a href="works/children-book-illustration/" class="home-works-item">
-            <div class="placeholder thumb-placeholder">作品画像予定</div>
-            <h3>サンプル作品 01</h3>
-            <p>作品紹介のサンプルテキストです。</p>
-          </a>
-          <article class="home-works-item">
-            <div class="placeholder thumb-placeholder">作品画像予定</div>
-            <h3>サンプル作品 02</h3>
-            <p>作品紹介のサンプルテキストです。</p>
-          </article>
-          <article class="home-works-item">
-            <div class="placeholder thumb-placeholder">作品画像予定</div>
-            <h3>サンプル作品 03</h3>
-            <p>作品紹介のサンプルテキストです。</p>
-          </article>
+        <div class="home-works-list" data-home-works-root>
+          <p class="home-list-message">読み込み中...</p>
         </div>
         <p class="section-link"><a href="works.html">もっと見る →</a></p>
       </section>
@@ -96,74 +82,8 @@
           <h2 class="section-heading">ブログ</h2>
           <p class="section-lead">日々感じたことや、好きなもののことなどを雑多に綴っています。</p>
         </div>
-        <div class="home-blog-entries">
-
-          <article
-            class="home-blog-entry"
-            data-slug="natsu-illustration"
-            data-category="diary"
-            data-status="published"
-          >
-            <a href="blog/natsu-illustration/" class="home-blog-entry-link">
-              <div class="home-blog-entry-info">
-                <div class="home-blog-entry-meta">
-                  <time class="home-blog-entry-date" datetime="2026-08-20">2026.08.20</time>
-                  <span class="home-blog-entry-category">制作日記</span>
-                </div>
-                <h3 class="home-blog-entry-title">テスト記事 01</h3>
-                <p class="home-blog-entry-summary">ブログ記事のサンプルテキストです。</p>
-              </div>
-              <figure class="home-blog-entry-eyecatch">
-                <div class="home-blog-eyecatch-placeholder" role="img" aria-label="アイキャッチ予定">アイキャッチ予定</div>
-              </figure>
-              <span class="home-blog-entry-arrow" aria-hidden="true">→</span>
-            </a>
-          </article>
-
-          <article
-            class="home-blog-entry"
-            data-slug="watercolor-set"
-            data-category="illustration"
-            data-status="published"
-          >
-            <a href="blog/watercolor-set/" class="home-blog-entry-link">
-              <div class="home-blog-entry-info">
-                <div class="home-blog-entry-meta">
-                  <time class="home-blog-entry-date" datetime="2026-07-12">2026.07.12</time>
-                  <span class="home-blog-entry-category">イラスト</span>
-                </div>
-                <h3 class="home-blog-entry-title">テスト記事 02</h3>
-                <p class="home-blog-entry-summary">ブログ記事のサンプルテキストです。</p>
-              </div>
-              <figure class="home-blog-entry-eyecatch">
-                <div class="home-blog-eyecatch-placeholder" role="img" aria-label="アイキャッチ予定">アイキャッチ予定</div>
-              </figure>
-              <span class="home-blog-entry-arrow" aria-hidden="true">→</span>
-            </a>
-          </article>
-
-          <article
-            class="home-blog-entry"
-            data-slug="cafe-sketch"
-            data-category="daily"
-            data-status="published"
-          >
-            <a href="blog/cafe-sketch/" class="home-blog-entry-link">
-              <div class="home-blog-entry-info">
-                <div class="home-blog-entry-meta">
-                  <time class="home-blog-entry-date" datetime="2026-06-28">2026.06.28</time>
-                  <span class="home-blog-entry-category">日々のこと</span>
-                </div>
-                <h3 class="home-blog-entry-title">テスト記事 03</h3>
-                <p class="home-blog-entry-summary">ブログ記事のサンプルテキストです。</p>
-              </div>
-              <figure class="home-blog-entry-eyecatch">
-                <div class="home-blog-eyecatch-placeholder" role="img" aria-label="アイキャッチ予定">アイキャッチ予定</div>
-              </figure>
-              <span class="home-blog-entry-arrow" aria-hidden="true">→</span>
-            </a>
-          </article>
-
+        <div class="home-blog-entries" data-home-blog-root>
+          <p class="home-list-message">読み込み中...</p>
         </div>
         <p class="section-link"><a href="blog.html">もっと見る →</a></p>
       </section>
@@ -177,5 +97,8 @@
     <p class="footer-copy">© 2026 おつまみ日記！</p>
   </footer>
 
+  <script src="js/cms-lists-common.js"></script>
+  <script src="js/blog-list.js"></script>
+  <script src="js/works-list.js"></script>
 </body>
 </html>
