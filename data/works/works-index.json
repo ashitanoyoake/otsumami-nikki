@@ -1,1 +1,19 @@
-[]
+[
+  {
+    "title": "サンプルイラスト｜公開動作確認",
+    "slug": "サンプルイラスト｜公開動作確認",
+    "category": "イラスト",
+    "summary": "やさしく親しみのある雰囲気をイメージした、CMS公開動作確認用のサンプルイラストです。",
+    "featuredImage": "/images/posts/050c3639.jpg",
+    "producedAt": "",
+    "publishedAt": "2026-09-14",
+    "path": "/works/%E3%82%B5%E3%83%B3%E3%83%97%E3%83%AB%E3%82%A4%E3%83%A9%E3%82%B9%E3%83%88%EF%BD%9C%E5%85%AC%E9%96%8B%E5%8B%95%E4%BD%9C%E7%A2%BA%E8%AA%8D.html",
+    "updatedAt": "2026-09-14T08:15:34.885Z",
+    "productionInfo": {
+      "year": "2026",
+      "medium": "Web",
+      "role": "イラスト制作",
+      "materials": "デジタル"
+    }
+  }
+]

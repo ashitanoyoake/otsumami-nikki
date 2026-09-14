@@ -1,4 +1,31 @@
 {
   "schemaVersion": 1,
-  "works": []
+  "works": [
+    {
+      "id": 1,
+      "title": "サンプルイラスト｜公開動作確認",
+      "slug": "サンプルイラスト｜公開動作確認",
+      "status": "公開",
+      "publishedAt": "2026-09-14",
+      "category": "イラスト",
+      "summary": "やさしく親しみのある雰囲気をイメージした、CMS公開動作確認用のサンプルイラストです。",
+      "featuredImage": "/images/posts/050c3639.jpg",
+      "additionalImages": [],
+      "producedAt": "",
+      "productionInfo": {
+        "year": "2026",
+        "medium": "Web",
+        "role": "イラスト制作",
+        "materials": "デジタル"
+      },
+      "contentBlocks": [
+        {
+          "id": "block-1789373446481-2",
+          "type": "paragraph",
+          "text": "やさしく親しみのある雰囲気を意識して制作したサンプル作品です。コンテンツルームからお仕事実績を登録・公開し、サイト上で正しく表示されるかを確認するために掲載しています。"
+        }
+      ],
+      "updatedAt": "2026-09-14T08:15:34.885Z"
+    }
+  ]
 }
