@@ -1767,7 +1767,7 @@ button.blog-category-link {
     row-gap: 0.9rem;
   }
 
-  .page-main:has(.gallery-instagram:not([hidden]) .instagram-cta-card) > .section-link {
+  .page-main > .section-link {
     display: none;
   }
 
