@@ -54,11 +54,14 @@
 
   <div class="instagram-modal" role="dialog" aria-modal="true" aria-label="Instagram投稿の拡大表示" hidden>
     <div class="instagram-modal-inner">
-      <button type="button" class="instagram-modal-close" aria-label="閉じる">×</button>
-      <button type="button" class="instagram-modal-prev" aria-label="前の投稿">←</button>
-      <button type="button" class="instagram-modal-next" aria-label="次の投稿">→</button>
-      <figure class="instagram-modal-figure">
-        <img class="instagram-modal-image" src="" alt="">
+      <button type="button" class="instagram-modal-prev" aria-label="前の画像" hidden>←</button>
+      <button type="button" class="instagram-modal-next" aria-label="次の画像" hidden>→</button>
+      <figure class="instagram-modal-figure instagram-modal-stage">
+        <div class="instagram-modal-image-wrap">
+          <img class="instagram-modal-image" src="" alt="">
+          <button type="button" class="instagram-modal-close" aria-label="閉じる">×</button>
+        </div>
+        <p class="instagram-modal-counter" hidden aria-live="polite"></p>
         <figcaption class="instagram-modal-caption">
           <a class="instagram-modal-link" href="#" target="_blank" rel="noopener noreferrer">Instagramで投稿を見る</a>
         </figcaption>

@@ -1,6 +1,7 @@
 /**
  * Instagram ギャラリー表示・モーダル
  * data/instagram.json を読み、instagram.html（最大9件）とホーム（最大3件）で共用する。
+ * 左右操作は投稿間ではなく、1投稿内の画像送りに使う。
  */
 (function () {
   const galleryRoot = document.querySelector("[data-instagram-gallery]");
@@ -17,10 +18,25 @@
   const DATA_URL = new URL("data/instagram.json", window.location.href).href;
   const LOADING_MESSAGE = "読み込み中...";
   const EMPTY_MESSAGE = "現在投稿を読み込めません。";
+  const SWIPE_MIN_DISTANCE = 48;
+  const SWIPE_HORIZONTAL_RATIO = 1.2;
 
-  /** @type {Array<{id: string, media_url: string, permalink: string, media_type: string, thumbnail_url: string | null, timestamp: string}>} */
+  /**
+   * @typedef {{
+   *   id: string,
+   *   media_url: string,
+   *   permalink: string,
+   *   media_type: string,
+   *   thumbnail_url: string | null,
+   *   timestamp: string,
+   *   children?: Array<{ media_url?: string, thumbnail_url?: string | null, media_type?: string }>
+   * }} InstagramPost
+   */
+
+  /** @type {InstagramPost[]} */
   let posts = [];
   let currentIndex = 0;
+  let currentSlide = 0;
   /** @type {HTMLElement | null} */
   let lastFocusedElement = null;
 
@@ -31,13 +47,15 @@
         nextBtn: modalEl.querySelector(".instagram-modal-next"),
         image: modalEl.querySelector(".instagram-modal-image"),
         link: modalEl.querySelector(".instagram-modal-link"),
+        counter: modalEl.querySelector(".instagram-modal-counter"),
+        stage: modalEl.querySelector(".instagram-modal-stage") || modalEl.querySelector(".instagram-modal-figure"),
         focusable: () =>
           /** @type {HTMLElement[]} */ (
             Array.from(
               modalEl.querySelectorAll(
-                'button, a[href], [tabindex]:not([tabindex="-1"])',
+                'button:not([hidden]):not([disabled]), a[href], [tabindex]:not([tabindex="-1"])',
               ),
-            )
+            ).filter((el) => !el.closest("[hidden]"))
           ),
       }
     : null;
@@ -52,6 +70,41 @@
       return "Instagram投稿";
     }
     return `Instagram投稿（${date.getFullYear()}年${date.getMonth() + 1}月${date.getDate()}日）`;
+  }
+
+  /**
+   * @param {InstagramPost} post
+   * @returns {string[]}
+   */
+  function getPostSlides(post) {
+    const slides = [];
+
+    if (Array.isArray(post.children)) {
+      post.children.forEach((child) => {
+        if (!child) return;
+        const url =
+          child.media_type === "VIDEO"
+            ? child.thumbnail_url || child.media_url
+            : child.media_url || child.thumbnail_url;
+        if (typeof url === "string" && url) {
+          slides.push(url);
+        }
+      });
+    }
+
+    if (slides.length > 0) {
+      return slides;
+    }
+
+    return post.media_url ? [post.media_url] : [];
+  }
+
+  /**
+   * @param {InstagramPost} post
+   * @returns {boolean}
+   */
+  function isCarouselPost(post) {
+    return getPostSlides(post).length > 1 || post.media_type === "CAROUSEL_ALBUM";
   }
 
   /**
@@ -70,7 +123,7 @@
   }
 
   /**
-   * @param {typeof posts} items
+   * @param {InstagramPost[]} items
    */
   function renderGallery(items) {
     gridEl.innerHTML = "";
@@ -80,17 +133,30 @@
       button.type = "button";
       button.className = "instagram-gallery-item";
       button.dataset.index = String(index);
-      button.setAttribute("aria-label", `${formatDateForAlt(post.timestamp)}を拡大表示`);
+
+      const slideCount = getPostSlides(post).length;
+      const dateLabel = formatDateForAlt(post.timestamp);
+      button.setAttribute(
+        "aria-label",
+        slideCount > 1 ? `${dateLabel}を拡大表示（全${slideCount}枚）` : `${dateLabel}を拡大表示`,
+      );
 
       const img = document.createElement("img");
       img.src = post.media_url;
-      img.alt = formatDateForAlt(post.timestamp);
+      img.alt = dateLabel;
       img.loading = "lazy";
       img.referrerPolicy = "no-referrer";
       img.width = 400;
       img.height = 400;
-
       button.appendChild(img);
+
+      if (isCarouselPost(post)) {
+        const badge = document.createElement("span");
+        badge.className = "instagram-carousel-badge";
+        badge.setAttribute("aria-hidden", "true");
+        button.appendChild(badge);
+      }
+
       gridEl.appendChild(button);
     });
 
@@ -98,43 +164,61 @@
   }
 
   /**
-   * @param {number} index
+   * @param {number} postIndex
+   * @param {number} slideIndex
    */
-  function updateModal(index) {
-    if (!modalParts || !posts[index]) return;
+  function updateModal(postIndex, slideIndex) {
+    if (!modalParts || !posts[postIndex]) return;
 
-    currentIndex = index;
-    const post = posts[index];
+    const post = posts[postIndex];
+    const slides = getPostSlides(post);
+    if (slides.length === 0) return;
 
-    modalParts.image.src = post.media_url;
-    modalParts.image.alt = formatDateForAlt(post.timestamp);
+    currentIndex = postIndex;
+    currentSlide = Math.max(0, Math.min(slideIndex, slides.length - 1));
+
+    const dateLabel = formatDateForAlt(post.timestamp);
+    modalParts.image.src = slides[currentSlide];
+    modalParts.image.alt =
+      slides.length > 1
+        ? `${dateLabel} ${currentSlide + 1}枚目`
+        : dateLabel;
     modalParts.link.href = post.permalink;
 
-    const hasPrev = index > 0;
-    const hasNext = index < posts.length - 1;
+    const isCarousel = slides.length > 1;
 
     if (modalParts.prevBtn instanceof HTMLButtonElement) {
-      modalParts.prevBtn.disabled = !hasPrev;
-      modalParts.prevBtn.hidden = posts.length <= 1;
+      modalParts.prevBtn.hidden = !isCarousel;
+      modalParts.prevBtn.disabled = currentSlide <= 0;
     }
 
     if (modalParts.nextBtn instanceof HTMLButtonElement) {
-      modalParts.nextBtn.disabled = !hasNext;
-      modalParts.nextBtn.hidden = posts.length <= 1;
+      modalParts.nextBtn.hidden = !isCarousel;
+      modalParts.nextBtn.disabled = currentSlide >= slides.length - 1;
+    }
+
+    if (modalParts.counter instanceof HTMLElement) {
+      if (isCarousel) {
+        modalParts.counter.hidden = false;
+        modalParts.counter.textContent = `${currentSlide + 1} / ${slides.length}`;
+      } else {
+        modalParts.counter.hidden = true;
+        modalParts.counter.textContent = "";
+      }
     }
   }
 
   /**
-   * @param {number} index
+   * @param {number} postIndex
    */
-  function openModal(index) {
-    if (!modalEl || !modalParts || !posts[index]) return;
+  function openModal(postIndex) {
+    if (!modalEl || !modalParts || !posts[postIndex]) return;
 
     lastFocusedElement = document.activeElement instanceof HTMLElement
       ? document.activeElement
       : null;
 
-    updateModal(index);
+    updateModal(postIndex, 0);
     modalEl.hidden = false;
     modalEl.classList.add("is-open");
     document.body.classList.add("instagram-modal-open");
@@ -160,10 +244,14 @@
   /**
    * @param {number} delta
    */
-  function moveModal(delta) {
-    const nextIndex = currentIndex + delta;
-    if (nextIndex < 0 || nextIndex >= posts.length) return;
-    updateModal(nextIndex);
+  function moveSlide(delta) {
+    const post = posts[currentIndex];
+    if (!post) return;
+
+    const slides = getPostSlides(post);
+    const nextSlide = currentSlide + delta;
+    if (nextSlide < 0 || nextSlide >= slides.length) return;
+    updateModal(currentIndex, nextSlide);
   }
 
   /**
@@ -189,6 +277,44 @@
     }
   }
 
+  function bindSwipeEvents() {
+    if (!modalEl || !modalParts || !modalParts.stage) return;
+
+    const stage = modalParts.stage;
+    /** @type {{ x: number, y: number } | null} */
+    let start = null;
+
+    stage.addEventListener("pointerdown", (event) => {
+      if (!(event instanceof PointerEvent)) return;
+      if (event.pointerType === "mouse" && event.button !== 0) return;
+      start = { x: event.clientX, y: event.clientY };
+    });
+
+    stage.addEventListener("pointerup", (event) => {
+      if (!(event instanceof PointerEvent) || !start) {
+        start = null;
+        return;
+      }
+
+      const dx = event.clientX - start.x;
+      const dy = event.clientY - start.y;
+      start = null;
+
+      if (Math.abs(dx) < SWIPE_MIN_DISTANCE) return;
+      if (Math.abs(dx) < Math.abs(dy) * SWIPE_HORIZONTAL_RATIO) return;
+
+      if (dx < 0) {
+        moveSlide(1);
+      } else {
+        moveSlide(-1);
+      }
+    });
+
+    stage.addEventListener("pointercancel", () => {
+      start = null;
+    });
+  }
+
   function bindModalEvents() {
     if (!modalEl || !modalParts) return;
 
@@ -202,10 +328,10 @@
       modalParts.closeBtn.addEventListener("click", closeModal);
     }
     if (modalParts.prevBtn) {
-      modalParts.prevBtn.addEventListener("click", () => moveModal(-1));
+      modalParts.prevBtn.addEventListener("click", () => moveSlide(-1));
     }
     if (modalParts.nextBtn) {
-      modalParts.nextBtn.addEventListener("click", () => moveModal(1));
+      modalParts.nextBtn.addEventListener("click", () => moveSlide(1));
     }
 
     document.addEventListener("keydown", (event) => {
@@ -219,18 +345,20 @@
 
       if (event.key === "ArrowLeft") {
         event.preventDefault();
-        moveModal(-1);
+        moveSlide(-1);
         return;
       }
 
       if (event.key === "ArrowRight") {
         event.preventDefault();
-        moveModal(1);
+        moveSlide(1);
         return;
       }
 
       trapFocus(event);
     });
+
+    bindSwipeEvents();
   }
 
   function bindGalleryEvents() {

@@ -70,14 +70,12 @@ function formatSafeApiError(status, bodyText) {
 }
 
 /**
- * 一覧表示用の画像URLを決定する（カルーセルは1枚目、動画はサムネイル優先）。
+ * 子メディア1件の表示用URLを決める（動画はサムネイル優先）。
  * @param {Record<string, unknown>} item
  * @returns {string | null}
  */
-function getDisplayMediaUrl(item) {
-  const mediaType = item.media_type;
-
-  if (mediaType === "VIDEO") {
+function getItemMediaUrl(item) {
+  if (item.media_type === "VIDEO") {
     return typeof item.thumbnail_url === "string"
       ? item.thumbnail_url
       : typeof item.media_url === "string"
@@ -85,30 +83,76 @@ function getDisplayMediaUrl(item) {
         : null;
   }
 
-  if (mediaType === "CAROUSEL_ALBUM") {
-    const children = item.children && typeof item.children === "object"
-      ? /** @type {{ data?: unknown }} */ (item.children).data
+  return typeof item.media_url === "string"
+    ? item.media_url
+    : typeof item.thumbnail_url === "string"
+      ? item.thumbnail_url
       : null;
+}
 
-    if (Array.isArray(children) && children.length > 0) {
-      const first = children[0];
-      if (first && typeof first === "object") {
-        const child = /** @type {Record<string, unknown>} */ (first);
-        if (child.media_type === "VIDEO") {
-          return typeof child.thumbnail_url === "string"
-            ? child.thumbnail_url
-            : typeof child.media_url === "string"
-              ? child.media_url
-              : null;
-        }
-        return typeof child.media_url === "string" ? child.media_url : null;
-      }
-    }
-
-    return typeof item.media_url === "string" ? item.media_url : null;
+/**
+ * APIの children を配列として取り出す。
+ * @param {Record<string, unknown>} item
+ * @returns {unknown[]}
+ */
+function readChildrenList(item) {
+  if (Array.isArray(item.children)) {
+    return item.children;
   }
 
-  return typeof item.media_url === "string" ? item.media_url : null;
+  if (item.children && typeof item.children === "object") {
+    const data = /** @type {{ data?: unknown }} */ (item.children).data;
+    if (Array.isArray(data)) {
+      return data;
+    }
+  }
+
+  return [];
+}
+
+/**
+ * カルーセル子要素をサイト表示用に正規化する。
+ * @param {Record<string, unknown>} item
+ * @returns {{ id: unknown, media_type: unknown, media_url: string, thumbnail_url: string | null }[]}
+ */
+function normalizeChildren(item) {
+  const children = [];
+
+  readChildrenList(item).forEach((raw) => {
+    if (!raw || typeof raw !== "object") {
+      return;
+    }
+
+    const child = /** @type {Record<string, unknown>} */ (raw);
+    const mediaUrl = getItemMediaUrl(child);
+
+    if (!mediaUrl) {
+      return;
+    }
+
+    children.push({
+      id: child.id || null,
+      media_type: child.media_type || null,
+      media_url: mediaUrl,
+      thumbnail_url: typeof child.thumbnail_url === "string" ? child.thumbnail_url : null,
+    });
+  });
+
+  return children;
+}
+
+/**
+ * 一覧表示用の代表画像URLを決定する。
+ * @param {Record<string, unknown>} item
+ * @param {{ media_url: string }[]} children
+ * @returns {string | null}
+ */
+function getDisplayMediaUrl(item, children) {
+  if (children.length > 0) {
+    return children[0].media_url;
+  }
+
+  return getItemMediaUrl(item);
 }
 
 /**
@@ -117,7 +161,8 @@ function getDisplayMediaUrl(item) {
  * @returns {Record<string, unknown> | null}
  */
 function normalizePost(item) {
-  const mediaUrl = getDisplayMediaUrl(item);
+  const children = normalizeChildren(item);
+  const mediaUrl = getDisplayMediaUrl(item, children);
   if (!mediaUrl || typeof item.permalink !== "string" || !item.permalink) {
     return null;
   }
@@ -129,6 +174,7 @@ function normalizePost(item) {
     media_type: item.media_type,
     thumbnail_url: typeof item.thumbnail_url === "string" ? item.thumbnail_url : null,
     timestamp: item.timestamp,
+    children,
   };
 }
 

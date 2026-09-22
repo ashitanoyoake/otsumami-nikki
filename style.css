@@ -671,6 +671,7 @@ a.home-works-item:hover {
 }
 
 .instagram-gallery-item {
+  position: relative;
   display: block;
   width: 100%;
   aspect-ratio: 1 / 1;
@@ -695,6 +696,36 @@ a.home-works-item:hover {
   object-fit: cover;
 }
 
+.instagram-carousel-badge {
+  position: absolute;
+  top: 0.4rem;
+  right: 0.4rem;
+  width: 1rem;
+  height: 1rem;
+  pointer-events: none;
+}
+
+.instagram-carousel-badge::before,
+.instagram-carousel-badge::after {
+  content: "";
+  position: absolute;
+  width: 0.58rem;
+  height: 0.58rem;
+  border: 1.5px solid #ffffff;
+  border-radius: 1px;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.25);
+}
+
+.instagram-carousel-badge::before {
+  top: 0;
+  right: 0;
+}
+
+.instagram-carousel-badge::after {
+  right: 0.22rem;
+  bottom: 0;
+}
+
 body.instagram-modal-open {
   overflow: hidden;
 }
@@ -706,7 +737,7 @@ body.instagram-modal-open {
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 1.2rem;
+  padding: 3.2rem 1.4rem 1.4rem;
   background-color: rgba(0, 0, 0, 0.82);
 }
 
@@ -725,16 +756,34 @@ body.instagram-modal-open {
   flex-direction: column;
   align-items: center;
   margin: 0;
+  touch-action: pan-y;
+}
+
+.instagram-modal-image-wrap {
+  position: relative;
+  display: inline-block;
+  max-width: 100%;
 }
 
 .instagram-modal-image {
   display: block;
   max-width: 100%;
-  max-height: calc(92vh - 5rem);
+  max-height: calc(92vh - 7rem);
   width: auto;
   height: auto;
   object-fit: contain;
   border-radius: 4px;
+}
+
+.instagram-modal-counter {
+  margin: 0.55rem 0 0;
+  font-size: 0.75rem;
+  letter-spacing: 0.08em;
+  color: rgba(255, 255, 255, 0.86);
+}
+
+.instagram-modal-counter[hidden] {
+  display: none;
 }
 
 .instagram-modal-caption {
@@ -787,10 +836,16 @@ body.instagram-modal-open {
   outline: none;
 }
 
+.instagram-modal-prev[hidden],
+.instagram-modal-next[hidden] {
+  display: none;
+}
+
 .instagram-modal-close {
-  top: -0.25rem;
-  right: -0.25rem;
+  top: 0;
+  right: 0;
   font-size: 1.5rem;
+  transform: translateY(calc(-100% - 0.4rem));
 }
 
 .instagram-modal-prev {
@@ -1612,7 +1667,7 @@ button.blog-category-link {
   }
 
   .instagram-modal {
-    padding: 0.8rem;
+    padding: 3.2rem 0.8rem 0.8rem;
   }
 
   .instagram-modal-inner {
@@ -1628,12 +1683,12 @@ button.blog-category-link {
   }
 
   .instagram-modal-close {
-    top: 0.25rem;
-    right: 0.25rem;
+    width: 2.75rem;
+    height: 2.75rem;
   }
 
   .instagram-modal-image {
-    max-height: calc(92vh - 6rem);
+    max-height: calc(92vh - 8rem);
   }
 
   /* --- お仕事一覧ページ --- */
