@@ -135,7 +135,9 @@
       item.className = "instagram-gallery-item";
 
       if (isHomeGallery) {
-        item.href = "instagram.html";
+        item.href = post.id
+          ? `instagram.html?post=${encodeURIComponent(String(post.id))}`
+          : "instagram.html";
       } else {
         item.type = "button";
         item.dataset.index = String(index);
@@ -389,6 +391,18 @@
     bindSwipeEvents();
   }
 
+  function openPostFromQuery() {
+    if (isHomeGallery) return;
+
+    const postId = new URLSearchParams(window.location.search).get("post");
+    if (!postId) return;
+
+    const index = posts.findIndex((post) => String(post.id) === postId);
+    if (index < 0) return;
+
+    openModal(index);
+  }
+
   function bindGalleryEvents() {
     if (isHomeGallery) return;
 
@@ -431,6 +445,7 @@
       }
 
       renderGallery(posts);
+      openPostFromQuery();
     } catch {
       showMessage(EMPTY_MESSAGE);
     }
