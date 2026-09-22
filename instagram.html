@@ -38,16 +38,12 @@
       <p class="page-lead">いろいろな日常を記録中 (・ω・)つ⊹₊˚✧･</p>
     </header>
 
-    <div class="gallery gallery-instagram">
-      <div class="placeholder instagram-placeholder">作品画像予定</div>
-      <div class="placeholder instagram-placeholder">作品画像予定</div>
-      <div class="placeholder multi-placeholder">複数枚投稿予定</div>
-      <div class="placeholder instagram-placeholder">作品画像予定</div>
-      <div class="placeholder multi-placeholder">複数枚投稿予定</div>
-      <div class="placeholder instagram-placeholder">作品画像予定</div>
+    <div data-instagram-gallery data-instagram-limit="9">
+      <div class="gallery gallery-instagram instagram-gallery" hidden></div>
+      <p class="instagram-gallery-message">読み込み中...</p>
     </div>
     <p class="section-link">
-      <a href="https://instagram.com/" target="_blank" rel="noopener noreferrer">Instagram アカウントを見る →</a>
+      <a href="https://www.instagram.com/tsumami_life/" target="_blank" rel="noopener noreferrer">Instagram アカウントを見る →</a>
     </p>
   </main>
 
@@ -56,5 +52,20 @@
     <p class="footer-copy">© 2026 おつまみ日記！</p>
   </footer>
 
+  <div class="instagram-modal" role="dialog" aria-modal="true" aria-label="Instagram投稿の拡大表示" hidden>
+    <div class="instagram-modal-inner">
+      <button type="button" class="instagram-modal-close" aria-label="閉じる">×</button>
+      <button type="button" class="instagram-modal-prev" aria-label="前の投稿">←</button>
+      <button type="button" class="instagram-modal-next" aria-label="次の投稿">→</button>
+      <figure class="instagram-modal-figure">
+        <img class="instagram-modal-image" src="" alt="">
+        <figcaption class="instagram-modal-caption">
+          <a class="instagram-modal-link" href="#" target="_blank" rel="noopener noreferrer">Instagramで投稿を見る</a>
+        </figcaption>
+      </figure>
+    </div>
+  </div>
+
+  <script src="js/instagram-gallery.js"></script>
 </body>
 </html>

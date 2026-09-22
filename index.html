@@ -61,10 +61,9 @@
           <h2 class="section-heading">Instagram</h2>
           <p class="section-lead">いろいろな日常を記録中 (・ω・)つ⊹₊˚✧･</p>
         </div>
-        <div class="thumb-row thumb-row-3">
-          <div class="placeholder thumb-placeholder">作品画像予定</div>
-          <div class="placeholder thumb-placeholder">作品画像予定</div>
-          <div class="placeholder thumb-placeholder">作品画像予定</div>
+        <div data-instagram-gallery data-instagram-limit="3">
+          <div class="thumb-row thumb-row-3 instagram-gallery" hidden></div>
+          <p class="home-list-message instagram-gallery-message">読み込み中...</p>
         </div>
         <p class="section-link"><a href="instagram.html">もっと見る →</a></p>
       </section>
@@ -102,8 +101,23 @@
     <p class="footer-copy">© 2026 おつまみ日記！</p>
   </footer>
 
+  <div class="instagram-modal" role="dialog" aria-modal="true" aria-label="Instagram投稿の拡大表示" hidden>
+    <div class="instagram-modal-inner">
+      <button type="button" class="instagram-modal-close" aria-label="閉じる">×</button>
+      <button type="button" class="instagram-modal-prev" aria-label="前の投稿">←</button>
+      <button type="button" class="instagram-modal-next" aria-label="次の投稿">→</button>
+      <figure class="instagram-modal-figure">
+        <img class="instagram-modal-image" src="" alt="">
+        <figcaption class="instagram-modal-caption">
+          <a class="instagram-modal-link" href="#" target="_blank" rel="noopener noreferrer">Instagramで投稿を見る</a>
+        </figcaption>
+      </figure>
+    </div>
+  </div>
+
   <script src="js/cms-lists-common.js"></script>
   <script src="js/blog-list.js"></script>
   <script src="js/works-list.js"></script>
+  <script src="js/instagram-gallery.js"></script>
 </body>
 </html>
