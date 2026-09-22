@@ -12,6 +12,8 @@
   const modalEl = document.querySelector(".instagram-modal");
   const parsedLimit = Number.parseInt(galleryRoot.getAttribute("data-instagram-limit") || "9", 10);
   const displayLimit = Number.isFinite(parsedLimit) && parsedLimit > 0 ? parsedLimit : 9;
+  const isHomeGallery = Boolean(galleryRoot.closest(".home-instagram"));
+  const NEW_BADGE_SRC = new URL("images/ui/new-badge.png", window.location.href).href;
 
   if (!gridEl || !messageEl) return;
 
@@ -129,17 +131,33 @@
     gridEl.innerHTML = "";
 
     items.forEach((post, index) => {
-      const button = document.createElement("button");
-      button.type = "button";
-      button.className = "instagram-gallery-item";
-      button.dataset.index = String(index);
+      const item = isHomeGallery ? document.createElement("a") : document.createElement("button");
+      item.className = "instagram-gallery-item";
+
+      if (isHomeGallery) {
+        item.href = "instagram.html";
+      } else {
+        item.type = "button";
+        item.dataset.index = String(index);
+      }
 
       const slideCount = getPostSlides(post).length;
       const dateLabel = formatDateForAlt(post.timestamp);
-      button.setAttribute(
+      const isLatest = index === 0;
+      const labelParts = [dateLabel];
+      if (isLatest) {
+        labelParts.push("最新");
+      }
+      if (slideCount > 1) {
+        labelParts.push(`全${slideCount}枚`);
+      }
+      item.setAttribute(
         "aria-label",
-        slideCount > 1 ? `${dateLabel}を拡大表示（全${slideCount}枚）` : `${dateLabel}を拡大表示`,
+        isHomeGallery ? `${labelParts.join("、")}を見る` : `${labelParts.join("、")}を拡大表示`,
       );
+
+      const thumb = document.createElement("span");
+      thumb.className = "instagram-gallery-thumb";
 
       const img = document.createElement("img");
       img.src = post.media_url;
@@ -148,16 +166,26 @@
       img.referrerPolicy = "no-referrer";
       img.width = 400;
       img.height = 400;
-      button.appendChild(img);
+      thumb.appendChild(img);
+      item.appendChild(thumb);
+
+      if (isLatest) {
+        const newBadge = document.createElement("img");
+        newBadge.className = "instagram-new-badge";
+        newBadge.src = NEW_BADGE_SRC;
+        newBadge.alt = "";
+        newBadge.setAttribute("aria-hidden", "true");
+        item.appendChild(newBadge);
+      }
 
       if (isCarouselPost(post)) {
         const badge = document.createElement("span");
         badge.className = "instagram-carousel-badge";
         badge.setAttribute("aria-hidden", "true");
-        button.appendChild(badge);
+        item.appendChild(badge);
       }
 
-      gridEl.appendChild(button);
+      gridEl.appendChild(item);
     });
 
     showGallery();
@@ -362,6 +390,8 @@
   }
 
   function bindGalleryEvents() {
+    if (isHomeGallery) return;
+
     gridEl.addEventListener("click", (event) => {
       const target = event.target;
       if (!(target instanceof Element)) return;

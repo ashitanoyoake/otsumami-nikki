@@ -676,10 +676,10 @@ a.home-works-item:hover {
   width: 100%;
   aspect-ratio: 1 / 1;
   padding: 0;
-  overflow: hidden;
+  overflow: visible;
   border: none;
   border-radius: 4px;
-  background-color: var(--placeholder-bg);
+  background-color: transparent;
   cursor: pointer;
 }
 
@@ -689,11 +689,42 @@ a.home-works-item:hover {
   outline-offset: 2px;
 }
 
-.instagram-gallery-item img {
+.instagram-gallery-thumb {
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  border-radius: 4px;
+  background-color: var(--placeholder-bg);
+}
+
+a.instagram-gallery-item {
+  color: inherit;
+  text-decoration: none;
+}
+
+.instagram-gallery-thumb img {
   display: block;
   width: 100%;
   height: 100%;
   object-fit: cover;
+}
+
+.instagram-new-badge {
+  position: absolute;
+  top: -0.55rem;
+  left: -0.6rem;
+  z-index: 2;
+  display: block;
+  width: 3.6rem;
+  height: auto;
+  pointer-events: none;
+}
+
+.home-instagram .instagram-new-badge {
+  top: -0.42rem;
+  left: -0.46rem;
+  width: 3.05rem;
 }
 
 .instagram-carousel-badge {
@@ -1664,6 +1695,18 @@ button.blog-category-link {
 
   .gallery-instagram {
     grid-template-columns: repeat(2, 1fr);
+  }
+
+  .instagram-new-badge {
+    top: -0.38rem;
+    left: -0.42rem;
+    width: 2.85rem;
+  }
+
+  .home-instagram .instagram-new-badge {
+    top: -0.24rem;
+    left: -0.28rem;
+    width: 2.15rem;
   }
 
   .instagram-modal {
