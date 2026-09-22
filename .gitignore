@@ -1,1 +1,4 @@
 .DS_Store
+.tmp-instagram-archive/
+images/instagram/posts/*.tmp
+images/instagram/posts/*.part

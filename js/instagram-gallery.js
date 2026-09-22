@@ -31,9 +31,33 @@
    *   media_type: string,
    *   thumbnail_url: string | null,
    *   timestamp: string,
-   *   children?: Array<{ media_url?: string, thumbnail_url?: string | null, media_type?: string }>
+   *   local_media_path?: string | null,
+   *   children?: Array<{
+   *     media_url?: string,
+   *     thumbnail_url?: string | null,
+   *     media_type?: string,
+   *     local_media_path?: string | null
+   *   }>
    * }} InstagramPost
    */
+
+  /**
+   * ローカル保存画像があればそれを使い、未移行の既存投稿は CDN URL にフォールバックする。
+   * @param {{ media_type?: string, media_url?: string, thumbnail_url?: string | null, local_media_path?: string | null } | null | undefined} item
+   * @returns {string}
+   */
+  function resolveMediaUrl(item) {
+    if (!item) {
+      return "";
+    }
+    if (typeof item.local_media_path === "string" && item.local_media_path) {
+      return item.local_media_path;
+    }
+    if (item.media_type === "VIDEO") {
+      return item.thumbnail_url || item.media_url || "";
+    }
+    return item.media_url || item.thumbnail_url || "";
+  }
 
   /** @type {InstagramPost[]} */
   let posts = [];
@@ -84,10 +108,7 @@
     if (Array.isArray(post.children)) {
       post.children.forEach((child) => {
         if (!child) return;
-        const url =
-          child.media_type === "VIDEO"
-            ? child.thumbnail_url || child.media_url
-            : child.media_url || child.thumbnail_url;
+        const url = resolveMediaUrl(child);
         if (typeof url === "string" && url) {
           slides.push(url);
         }
@@ -98,7 +119,8 @@
       return slides;
     }
 
-    return post.media_url ? [post.media_url] : [];
+    const fallback = resolveMediaUrl(post);
+    return fallback ? [fallback] : [];
   }
 
   /**
@@ -166,7 +188,7 @@
       thumb.className = "instagram-gallery-thumb";
 
       const img = document.createElement("img");
-      img.src = post.media_url;
+      img.src = resolveMediaUrl(post);
       img.alt = dateLabel;
       img.loading = "lazy";
       img.referrerPolicy = "no-referrer";
@@ -487,7 +509,7 @@
       }
 
       posts = data.posts
-        .filter((post) => post && post.media_url && post.permalink)
+        .filter((post) => post && post.permalink && resolveMediaUrl(post))
         .slice(0, displayLimit);
 
       if (posts.length === 0) {
