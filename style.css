@@ -751,6 +751,43 @@ a.instagram-gallery-item {
   display: none;
 }
 
+.page-main .gallery-instagram .instagram-cta-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.28rem;
+  background-color: #faf8f6;
+  border: 1px dashed rgba(200, 135, 74, 0.4);
+  box-sizing: border-box;
+}
+
+.instagram-cta-icon {
+  width: 2.5rem;
+  height: 2.5rem;
+  object-fit: contain;
+}
+
+.instagram-cta-text {
+  font-size: 0.72rem;
+  letter-spacing: 0.04em;
+  color: var(--text);
+  line-height: 1.4;
+}
+
+.instagram-cta-more {
+  font-size: 0.68rem;
+  letter-spacing: 0.04em;
+  color: var(--accent);
+  line-height: 1.4;
+}
+
+@media (min-width: 769px) {
+  .page-main .gallery-instagram .instagram-cta-card {
+    display: none;
+  }
+}
+
 .instagram-carousel-badge {
   position: absolute;
   top: 0.4rem;
@@ -1724,10 +1761,14 @@ button.blog-category-link {
     font-size: 0.78rem;
   }
 
-  .gallery-instagram {
-    grid-template-columns: repeat(3, 1fr);
-    column-gap: 6px;
-    row-gap: 6px;
+  .page-main .gallery-instagram {
+    grid-template-columns: repeat(2, 1fr);
+    column-gap: 0.7rem;
+    row-gap: 0.9rem;
+  }
+
+  .page-main:has(.gallery-instagram:not([hidden]) .instagram-cta-card) > .section-link {
+    display: none;
   }
 
   .instagram-new-badge {
@@ -1742,21 +1783,27 @@ button.blog-category-link {
     width: 2.15rem;
   }
 
-  .gallery-instagram .instagram-carousel-badge {
-    top: 0.22rem;
-    right: 0.22rem;
-    width: 0.72rem;
-    height: 0.72rem;
+  .page-main .gallery-instagram .instagram-new-badge {
+    top: -0.28rem;
+    left: -0.32rem;
+    width: 2.05rem;
   }
 
-  .gallery-instagram .instagram-carousel-badge::before,
-  .gallery-instagram .instagram-carousel-badge::after {
-    width: 0.42rem;
-    height: 0.42rem;
+  .page-main .gallery-instagram .instagram-carousel-badge {
+    top: 0.28rem;
+    right: 0.28rem;
+    width: 0.82rem;
+    height: 0.82rem;
   }
 
-  .gallery-instagram .instagram-carousel-badge::after {
-    right: 0.16rem;
+  .page-main .gallery-instagram .instagram-carousel-badge::before,
+  .page-main .gallery-instagram .instagram-carousel-badge::after {
+    width: 0.48rem;
+    height: 0.48rem;
+  }
+
+  .page-main .gallery-instagram .instagram-carousel-badge::after {
+    right: 0.18rem;
   }
 
   .instagram-modal {

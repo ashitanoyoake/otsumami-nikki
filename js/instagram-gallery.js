@@ -128,7 +128,11 @@
    * @param {InstagramPost[]} items
    */
   function renderGallery(items) {
-    gridEl.innerHTML = "";
+    const existingCta = gridEl.querySelector(".instagram-cta-card");
+
+    gridEl.querySelectorAll(".instagram-gallery-item:not(.instagram-cta-card)").forEach((item) => {
+      item.remove();
+    });
 
     items.forEach((post, index) => {
       const item = isHomeGallery ? document.createElement("a") : document.createElement("button");
@@ -187,10 +191,57 @@
         item.appendChild(badge);
       }
 
-      gridEl.appendChild(item);
+      if (existingCta) {
+        gridEl.insertBefore(item, existingCta);
+      } else {
+        gridEl.appendChild(item);
+      }
     });
 
+    if (!isHomeGallery && !gridEl.querySelector(".instagram-cta-card")) {
+      appendListingCtaCard();
+    }
+
     showGallery();
+  }
+
+  function appendListingCtaCard() {
+    if (isHomeGallery) {
+      return;
+    }
+
+    const accountLink = document.querySelector(".page-main .section-link a[href]");
+
+    if (!(accountLink instanceof HTMLAnchorElement) || !accountLink.getAttribute("href")) {
+      return;
+    }
+
+    const card = document.createElement("a");
+    card.className = "instagram-gallery-item instagram-cta-card";
+    card.href = accountLink.href;
+    card.target = accountLink.target || "_blank";
+    card.rel = accountLink.rel || "noopener noreferrer";
+    card.setAttribute("aria-label", "Instagramでもっと見る");
+
+    const icon = document.createElement("img");
+    icon.className = "instagram-cta-icon";
+    icon.src = new URL("images/instagram.png", window.location.href).href;
+    icon.alt = "";
+    icon.width = 72;
+    icon.height = 72;
+    card.appendChild(icon);
+
+    const line = document.createElement("span");
+    line.className = "instagram-cta-text";
+    line.textContent = "Instagramで";
+    card.appendChild(line);
+
+    const more = document.createElement("span");
+    more.className = "instagram-cta-more";
+    more.textContent = "もっと見る →";
+    card.appendChild(more);
+
+    gridEl.appendChild(card);
   }
 
   /**
