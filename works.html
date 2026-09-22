@@ -3,13 +3,13 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>お仕事 | おつまみ日記！</title>
+  <title>イラスト | おつまみ日記！</title>
   <link rel="icon" href="images/favicon.ico" sizes="any">
   <link rel="icon" type="image/png" sizes="32x32" href="images/favicon-32x32.png">
   <link rel="icon" type="image/png" sizes="192x192" href="images/favicon-192x192.png">
   <link rel="icon" type="image/png" sizes="512x512" href="images/favicon-512x512.png">
   <link rel="apple-touch-icon" href="images/apple-touch-icon.png">
-  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="style.css?v=2">
 </head>
 <body>
 
@@ -22,7 +22,7 @@
       <ul>
         <li><a href="index.html">ホーム</a></li>
         <li><a href="instagram.html">Instagram</a></li>
-        <li><a href="works.html" class="nav-current">お仕事</a></li>
+        <li><a href="works.html" class="nav-current">イラスト</a></li>
         <li><a href="blog.html">ブログ</a></li>
         <li><a href="contact.html">お問い合わせ</a></li>
       </ul>
@@ -34,11 +34,14 @@
       <div class="page-deco">
         <div class="placeholder deco-placeholder">イラスト予定</div>
       </div>
-      <h1 class="page-title">お仕事</h1>
-      <p class="page-lead">これまでに制作したイラストやご依頼作品をご紹介します。</p>
+      <h1 class="page-title">イラスト</h1>
+      <p class="page-lead">仕事で描いたものも、個人で描いたものも、これまでのイラストをご紹介します。</p>
     </header>
 
     <div data-works-list-root>
+      <nav class="works-categories" aria-label="イラストカテゴリー" hidden>
+        <ul class="works-category-list"></ul>
+      </nav>
       <div class="works-entries" hidden></div>
       <p class="works-list-message">読み込み中...</p>
     </div>
@@ -50,6 +53,6 @@
   </footer>
 
   <script src="js/cms-lists-common.js"></script>
-  <script src="js/works-list.js"></script>
+  <script src="js/works-list.js?v=2"></script>
 </body>
 </html>

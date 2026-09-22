@@ -612,29 +612,47 @@ main {
 .home-works-list {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 1rem;
+  gap: 1.4rem 1.2rem;
+}
+
+.home-works-thumb {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  aspect-ratio: 3 / 4;
+  margin: 0;
+  overflow: hidden;
+  border: 1px solid #f0ebe6;
+  border-radius: 4px;
+  background-color: #faf8f6;
 }
 
 .home-works-item img {
   display: block;
   width: 100%;
-  aspect-ratio: 3 / 2;
-  object-fit: cover;
-  border-radius: 4px;
+  height: 100%;
+  object-fit: contain;
+}
+
+.home-works-category {
+  display: block;
+  margin: 0.55rem 0 0.15rem;
+  font-size: 0.68rem;
+  letter-spacing: 0.06em;
+  color: var(--accent);
 }
 
 .home-works-item h3 {
-  margin: 0.8rem 0 0.3rem;
+  margin: 0.35rem 0 0;
   font-size: 0.85rem;
   font-weight: 400;
   color: var(--text);
+  line-height: 1.55;
 }
 
-.home-works-item p {
-  margin: 0;
-  font-size: 0.82rem;
-  color: var(--text-muted);
-  line-height: 1.7;
+.home-works-item .home-works-category + h3 {
+  margin-top: 0;
 }
 
 a.home-works-item,
@@ -908,23 +926,72 @@ body.instagram-modal-open {
    お仕事一覧ページ
    ======================================== */
 
+.works-categories {
+  margin: 0 0 1.6rem;
+  padding-bottom: 1.2rem;
+  border-bottom: 1px solid #eee;
+}
+
+.works-categories[hidden] {
+  display: none;
+}
+
+.works-category-list {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.4rem 1.4rem;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.works-category-link {
+  display: inline-block;
+  padding: 0.2rem 0;
+  font-size: 0.82rem;
+  letter-spacing: 0.06em;
+  color: #888;
+  border-bottom: 2px solid transparent;
+}
+
+button.works-category-link {
+  appearance: none;
+  background: none;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  cursor: pointer;
+  font-family: inherit;
+  line-height: inherit;
+}
+
+.works-category-link:hover,
+.works-category-link.is-current {
+  color: var(--accent);
+  text-decoration: none;
+}
+
+.works-category-link.is-current {
+  border-bottom-color: var(--accent);
+}
+
 .works-entries {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 2rem 1.6rem;
   margin: 0;
 }
 
-.works-entry {
-  border-bottom: var(--stitch);
-}
-
-.works-entry:first-child {
-  border-top: var(--stitch);
+.works-entry[hidden] {
+  display: none;
 }
 
 .works-entry-link {
   display: flex;
-  align-items: center;
-  gap: 1.4rem;
-  padding: 1.5rem 0;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0.7rem;
+  padding: 0;
   color: var(--text);
 }
 
@@ -934,18 +1001,24 @@ body.instagram-modal-open {
 }
 
 .works-entry-thumb {
-  flex-shrink: 0;
-  width: 176px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  aspect-ratio: 3 / 4;
   margin: 0;
+  overflow: hidden;
+  border: 1px solid #f0ebe6;
+  border-radius: 4px;
+  background-color: #faf8f6;
 }
 
 .works-entry-image,
 .works-thumb-placeholder {
   display: block;
   width: 100%;
-  aspect-ratio: 3 / 2;
-  object-fit: cover;
-  border-radius: 4px;
+  height: 100%;
+  object-fit: contain;
 }
 
 .works-thumb-placeholder {
@@ -959,61 +1032,34 @@ body.instagram-modal-open {
 }
 
 .works-entry-info {
-  flex: 1;
   min-width: 0;
 }
 
 .works-entry-category {
   display: block;
-  margin-bottom: 0.3rem;
+  margin-bottom: 0.2rem;
   font-size: 0.72rem;
   letter-spacing: 0.06em;
   color: var(--accent);
 }
 
 .works-entry-title {
-  margin: 0 0 0.35rem;
+  margin: 0;
   font-family: "Zen Maru Gothic", sans-serif;
-  font-size: 1rem;
+  font-size: 0.95rem;
   font-weight: 400;
   letter-spacing: 0.04em;
   line-height: 1.55;
   color: var(--text);
 }
 
-.works-entry-link:hover .works-entry-title,
-.works-entry-link:hover .works-entry-arrow {
+.works-entry-link:hover .works-entry-title {
   color: var(--accent);
 }
 
-.works-entry-summary {
-  margin: 0;
-  font-size: 0.82rem;
-  color: var(--text-muted);
-  line-height: 1.7;
-}
-
-.works-entry-arrow {
-  flex-shrink: 0;
-  font-size: 1.05rem;
-  color: #ccc;
-  line-height: 1;
-}
-
-.works-entry-production {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.2rem 0.9rem;
-  margin: 0.35rem 0 0;
-  padding: 0;
-  list-style: none;
-  font-size: 0.75rem;
-  color: var(--text-muted);
-  line-height: 1.7;
-}
-
-.works-entry-production-label::after {
-  content: "：";
+.works-entries .works-entry-summary,
+.works-entries .works-entry-arrow {
+  display: none;
 }
 
 .works-list-message,
@@ -1670,33 +1716,12 @@ button.blog-category-link {
   }
 
   .home-works-list {
-    grid-template-columns: 1fr;
-    gap: 1rem;
-  }
-
-  .home-works-item {
-    display: grid;
-    grid-template-columns: 5.6rem 1fr;
-    grid-template-areas:
-      "thumb title"
-      "thumb desc";
-    column-gap: 0.85rem;
-    row-gap: 0.2rem;
-    align-items: start;
-  }
-
-  .home-works-item .thumb-placeholder {
-    grid-area: thumb;
-    width: 100%;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1rem 0.7rem;
   }
 
   .home-works-item h3 {
-    grid-area: title;
-    margin: 0.15rem 0 0;
-  }
-
-  .home-works-item p {
-    grid-area: desc;
+    font-size: 0.78rem;
   }
 
   .gallery-instagram {
@@ -1772,40 +1797,13 @@ button.blog-category-link {
   }
 
   /* --- お仕事一覧ページ --- */
-  .works-entry-link {
-    display: grid;
-    grid-template-columns: 1fr auto;
-    grid-template-areas:
-      "info arrow"
-      "thumb thumb";
-    align-items: start;
-    gap: 0.8rem 0.7rem;
-    padding: 1.3rem 0;
-  }
-
-  .works-entry-info {
-    grid-area: info;
-  }
-
-  .works-entry-thumb {
-    grid-area: thumb;
-    width: 100%;
-  }
-
-  .works-entry-image,
-  .works-thumb-placeholder {
-    width: 100%;
-    height: auto;
-  }
-
-  .works-entry-arrow {
-    grid-area: arrow;
-    align-self: start;
-    padding-top: 0.1rem;
+  .works-entries {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1.5rem 0.9rem;
   }
 
   .works-entry-title {
-    font-size: 0.95rem;
+    font-size: 0.88rem;
   }
 
   /* --- お仕事詳細ページ --- */
