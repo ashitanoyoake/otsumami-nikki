@@ -1,6 +1,6 @@
 /**
  * Instagram ギャラリー表示・モーダル
- * data/instagram.json を読み、instagram.html（初期12件＋もっと見る）とホーム（最大3件）で共用する。
+ * data/instagram.json を読み、instagram.html（12件ページネーション）とホーム（最大3件）で共用する。
  * ホームは分類JSONを使わず最新N件。Instagramページは分類済み投稿だけを一覧表示する。
  * 左右操作は投稿間ではなく、1投稿内の画像送りに使う。
  */
@@ -14,6 +14,8 @@
   const parsedLimit = Number.parseInt(galleryRoot.getAttribute("data-instagram-limit") || "9", 10);
   const displayLimit = Number.isFinite(parsedLimit) && parsedLimit > 0 ? parsedLimit : 9;
   const ARCHIVE_PAGE_SIZE = (window.InstagramClassifications && window.InstagramClassifications.ARCHIVE_PAGE_SIZE) || 12;
+  const ALL_CATEGORY_FILTER =
+    (window.InstagramClassifications && window.InstagramClassifications.ALL_CATEGORY_FILTER) || "all";
   const isHomeGallery = Boolean(galleryRoot.closest(".home-instagram"));
   const NEW_BADGE_SRC = new URL("images/ui/new-badge.png", window.location.href).href;
 
@@ -24,7 +26,6 @@
   const LOADING_MESSAGE = "読み込み中...";
   const EMPTY_MESSAGE = "現在投稿を読み込めません。";
   const ARCHIVE_EMPTY_MESSAGE = "現在公開中の投稿はありません。";
-  const ALL_CATEGORY_FILTER = "all";
   const SWIPE_MIN_DISTANCE = 48;
   const SWIPE_HORIZONTAL_RATIO = 1.2;
 
@@ -78,7 +79,7 @@
   /** @type {{ categories: Array<{ id: string, name: string }>, assignments: Record<string, string> } | null} */
   let classificationsData = null;
   let currentCategoryFilter = ALL_CATEGORY_FILTER;
-  let visibleCount = ARCHIVE_PAGE_SIZE;
+  let currentPage = 1;
   let currentIndex = 0;
   let currentSlide = 0;
   /** @type {HTMLElement | null} */
@@ -149,24 +150,146 @@
     return getPostSlides(post).length > 1 || post.media_type === "CAROUSEL_ALBUM";
   }
 
-  function hideLoadMore() {
-    const wrapEl = galleryRoot.querySelector(".instagram-load-more-wrap");
-    if (wrapEl instanceof HTMLElement) {
-      wrapEl.hidden = true;
+  function hidePagination() {
+    const navEl = galleryRoot.querySelector(".instagram-pagination");
+    const listEl = galleryRoot.querySelector(".instagram-pagination-list");
+    if (navEl instanceof HTMLElement) {
+      navEl.hidden = true;
+    }
+    if (listEl instanceof HTMLElement) {
+      listEl.innerHTML = "";
     }
   }
 
-  function updateLoadMore() {
-    const wrapEl = galleryRoot.querySelector(".instagram-load-more-wrap");
-    if (!(wrapEl instanceof HTMLElement) || isHomeGallery) {
+  function getValidCategoryIds() {
+    const Classifications = window.InstagramClassifications;
+    if (!Classifications || !classificationsData) {
+      return [];
+    }
+    return Classifications.visibleCategories(classificationsData).map((category) => category.id);
+  }
+
+  function readUrlState() {
+    const Classifications = window.InstagramClassifications;
+    if (!Classifications) {
+      return { category: ALL_CATEGORY_FILTER, page: 1, post: null };
+    }
+    return Classifications.parseArchiveSearch(window.location.search, {
+      validCategoryIds: getValidCategoryIds(),
+    });
+  }
+
+  /**
+   * @param {{ replace?: boolean, postId?: string | null }} [options]
+   */
+  function syncUrl(options) {
+    if (isHomeGallery) {
       return;
     }
 
     const Classifications = window.InstagramClassifications;
-    const show = Classifications
-      ? Classifications.shouldShowLoadMore(visibleCount, filteredPosts.length)
-      : filteredPosts.length > visibleCount;
-    wrapEl.hidden = !show;
+    if (!Classifications) {
+      return;
+    }
+
+    const postId = options && Object.prototype.hasOwnProperty.call(options, "postId")
+      ? options.postId
+      : new URLSearchParams(window.location.search).get("post");
+    const search = Classifications.buildArchiveSearch({
+      category: currentCategoryFilter,
+      page: currentPage,
+      post: postId || null,
+    });
+    const nextUrl = `${window.location.pathname}${search}`;
+    const currentUrl = `${window.location.pathname}${window.location.search}`;
+    if (nextUrl === currentUrl) {
+      return;
+    }
+
+    if (options && options.replace) {
+      history.replaceState({ instagramArchive: true }, "", nextUrl);
+      return;
+    }
+
+    history.pushState({ instagramArchive: true }, "", nextUrl);
+  }
+
+  function updatePagination() {
+    const navEl = galleryRoot.querySelector(".instagram-pagination");
+    const listEl = galleryRoot.querySelector(".instagram-pagination-list");
+    const Classifications = window.InstagramClassifications;
+    if (!(navEl instanceof HTMLElement) || !(listEl instanceof HTMLElement) || isHomeGallery || !Classifications) {
+      return;
+    }
+
+    if (!Classifications.shouldShowPagination(filteredPosts.length, ARCHIVE_PAGE_SIZE)) {
+      hidePagination();
+      return;
+    }
+
+    const totalPages = Classifications.pageCount(filteredPosts.length, ARCHIVE_PAGE_SIZE);
+    const items = Classifications.paginationItems(currentPage, totalPages);
+    listEl.innerHTML = "";
+
+    /**
+     * @param {{ page?: number, label: string, current?: boolean, disabled?: boolean, ariaLabel?: string }} spec
+     */
+    function appendButton(spec) {
+      const item = document.createElement("li");
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = "instagram-pagination-button";
+      button.textContent = spec.label;
+      if (spec.page) {
+        button.dataset.page = String(spec.page);
+      }
+      if (spec.current) {
+        button.classList.add("is-current");
+        button.setAttribute("aria-current", "page");
+      }
+      if (spec.disabled) {
+        button.disabled = true;
+      }
+      if (spec.ariaLabel) {
+        button.setAttribute("aria-label", spec.ariaLabel);
+      }
+      item.appendChild(button);
+      listEl.appendChild(item);
+    }
+
+    appendButton({
+      page: currentPage - 1,
+      label: "前へ",
+      disabled: currentPage <= 1,
+      ariaLabel: "前のページ",
+    });
+
+    items.forEach((entry) => {
+      if (entry === "ellipsis") {
+        const item = document.createElement("li");
+        item.className = "instagram-pagination-ellipsis";
+        item.setAttribute("aria-hidden", "true");
+        item.textContent = "…";
+        listEl.appendChild(item);
+        return;
+      }
+
+      appendButton({
+        page: entry,
+        label: String(entry),
+        current: entry === currentPage,
+        ariaLabel: `${entry}ページ目`,
+      });
+    });
+
+    appendButton({
+      page: currentPage + 1,
+      label: "次へ",
+      disabled: currentPage >= totalPages,
+      ariaLabel: "次のページ",
+    });
+
+    navEl.hidden = false;
   }
 
   /**
@@ -177,7 +300,7 @@
     gridEl.setAttribute("hidden", "");
     messageEl.textContent = text || EMPTY_MESSAGE;
     messageEl.removeAttribute("hidden");
-    hideLoadMore();
+    hidePagination();
   }
 
   function showGallery() {
@@ -190,6 +313,16 @@
     if (navEl instanceof HTMLElement) {
       navEl.hidden = true;
     }
+  }
+
+  function updateCategoryCurrent() {
+    const listEl = galleryRoot.querySelector(".instagram-category-list");
+    if (!listEl) {
+      return;
+    }
+    listEl.querySelectorAll(".instagram-category-link").forEach((item) => {
+      item.classList.toggle("is-current", item instanceof HTMLButtonElement && item.dataset.filter === currentCategoryFilter);
+    });
   }
 
   /**
@@ -236,40 +369,44 @@
     navEl.hidden = false;
   }
 
-  function applyCategoryFilter() {
+  /**
+   * @param {{ skipUrl?: boolean, replaceUrl?: boolean, postId?: string | null }} [options]
+   */
+  function renderVisiblePosts(options) {
     const Classifications = window.InstagramClassifications;
     filteredPosts = Classifications
       ? Classifications.selectPostsForCategory(classifiedPosts, classificationsData, currentCategoryFilter)
       : [];
-    visibleCount = ARCHIVE_PAGE_SIZE;
-    renderVisiblePosts();
-  }
-
-  function renderVisiblePosts() {
-    const Classifications = window.InstagramClassifications;
+    currentPage = Classifications
+      ? Classifications.clampPage(currentPage, filteredPosts.length, ARCHIVE_PAGE_SIZE)
+      : 1;
     listedPosts = Classifications
-      ? Classifications.sliceVisiblePosts(filteredPosts, visibleCount)
-      : filteredPosts.slice(0, visibleCount);
+      ? Classifications.slicePage(filteredPosts, currentPage, ARCHIVE_PAGE_SIZE)
+      : filteredPosts.slice(0, ARCHIVE_PAGE_SIZE);
     posts = listedPosts;
 
     if (listedPosts.length === 0) {
       showMessage(ARCHIVE_EMPTY_MESSAGE);
-      return;
+    } else {
+      renderGallery(listedPosts);
+      updatePagination();
     }
 
-    renderGallery(listedPosts);
-    updateLoadMore();
+    updateCategoryCurrent();
+
+    if (!(options && options.skipUrl)) {
+      syncUrl({
+        replace: Boolean(options && options.replaceUrl),
+        postId: options && Object.prototype.hasOwnProperty.call(options, "postId") ? options.postId : undefined,
+      });
+    }
   }
 
   /**
    * @param {InstagramPost[]} items
    */
   function renderGallery(items) {
-    const existingCta = gridEl.querySelector(".instagram-cta-card");
-
-    gridEl.querySelectorAll(".instagram-gallery-item:not(.instagram-cta-card)").forEach((item) => {
-      item.remove();
-    });
+    gridEl.innerHTML = "";
 
     items.forEach((post, index) => {
       const item = isHomeGallery ? document.createElement("a") : document.createElement("button");
@@ -328,57 +465,17 @@
         item.appendChild(badge);
       }
 
-      if (existingCta) {
-        gridEl.insertBefore(item, existingCta);
-      } else {
-        gridEl.appendChild(item);
-      }
+      gridEl.appendChild(item);
     });
-
-    if (!isHomeGallery && !gridEl.querySelector(".instagram-cta-card")) {
-      appendListingCtaCard();
-    }
 
     showGallery();
   }
 
-  function appendListingCtaCard() {
-    if (isHomeGallery) {
-      return;
+  function scrollListingIntoView() {
+    const target = galleryRoot.querySelector(".instagram-categories") || galleryRoot;
+    if (target instanceof HTMLElement) {
+      target.scrollIntoView({ block: "start" });
     }
-
-    const accountLink = document.querySelector(".page-main .section-link a[href]");
-
-    if (!(accountLink instanceof HTMLAnchorElement) || !accountLink.getAttribute("href")) {
-      return;
-    }
-
-    const card = document.createElement("a");
-    card.className = "instagram-gallery-item instagram-cta-card";
-    card.href = accountLink.href;
-    card.target = accountLink.target || "_blank";
-    card.rel = accountLink.rel || "noopener noreferrer";
-    card.setAttribute("aria-label", "Instagramでもっと見る");
-
-    const icon = document.createElement("img");
-    icon.className = "instagram-cta-icon";
-    icon.src = new URL("images/instagram.png", window.location.href).href;
-    icon.alt = "";
-    icon.width = 72;
-    icon.height = 72;
-    card.appendChild(icon);
-
-    const line = document.createElement("span");
-    line.className = "instagram-cta-text";
-    line.textContent = "Instagramで";
-    card.appendChild(line);
-
-    const more = document.createElement("span");
-    more.className = "instagram-cta-more";
-    more.textContent = "もっと見る →";
-    card.appendChild(more);
-
-    gridEl.appendChild(card);
   }
 
   /**
@@ -446,7 +543,10 @@
     }
   }
 
-  function closeModal() {
+  /**
+   * @param {{ skipUrl?: boolean }} [options]
+   */
+  function closeModal(options) {
     if (!modalEl) return;
 
     modalEl.hidden = true;
@@ -455,6 +555,10 @@
     posts = listedPosts;
     currentIndex = 0;
     currentSlide = 0;
+
+    if (!(options && options.skipUrl) && new URLSearchParams(window.location.search).has("post")) {
+      syncUrl({ postId: null });
+    }
 
     if (lastFocusedElement) {
       lastFocusedElement.focus();
@@ -546,7 +650,7 @@
     });
 
     if (modalParts.closeBtn) {
-      modalParts.closeBtn.addEventListener("click", closeModal);
+      modalParts.closeBtn.addEventListener("click", () => closeModal());
     }
     if (modalParts.prevBtn) {
       modalParts.prevBtn.addEventListener("click", () => moveSlide(-1));
@@ -582,33 +686,72 @@
     bindSwipeEvents();
   }
 
-  function openListedModal(index) {
+  /**
+   * @param {number} index
+   * @param {{ syncUrl?: boolean }} [options]
+   */
+  function openListedModal(index, options) {
     posts = listedPosts;
+    const post = listedPosts[index];
+    if (post && post.id && !(options && options.syncUrl === false)) {
+      syncUrl({ postId: String(post.id) });
+    }
     openModal(index);
   }
 
-  function openPostFromQuery() {
+  /**
+   * @param {string | null} [postId]
+   */
+  function openPostFromQuery(postId) {
     if (isHomeGallery) return;
 
-    const postId = new URLSearchParams(window.location.search).get("post");
-    if (!postId) return;
+    const targetId = postId || new URLSearchParams(window.location.search).get("post");
+    if (!targetId) return;
 
     const Classifications = window.InstagramClassifications;
+    if (Classifications) {
+      const page = Classifications.pageOfPost(filteredPosts, targetId, ARCHIVE_PAGE_SIZE);
+      if (page && page !== currentPage) {
+        currentPage = page;
+        renderVisiblePosts({ skipUrl: true });
+      }
+    }
+
     const resolved = Classifications
-      ? Classifications.resolveDirectPost(postId, listedPosts, validPosts)
+      ? Classifications.resolveDirectPost(targetId, listedPosts, validPosts)
       : {
-          listedIndex: listedPosts.findIndex((post) => String(post.id) === postId),
-          directPost: validPosts.find((post) => String(post.id) === postId) || null,
+          listedIndex: listedPosts.findIndex((post) => String(post.id) === targetId),
+          directPost: validPosts.find((post) => String(post.id) === targetId) || null,
         };
 
     if (resolved.listedIndex >= 0) {
-      openListedModal(resolved.listedIndex);
+      openListedModal(resolved.listedIndex, { syncUrl: false });
       return;
     }
 
     if (resolved.directPost) {
       posts = [resolved.directPost];
       openModal(0);
+    }
+  }
+
+  /**
+   * @param {{ replaceUrl?: boolean }} [options]
+   */
+  function applyUrlState(options) {
+    const urlState = readUrlState();
+    currentCategoryFilter = urlState.category;
+    currentPage = urlState.page;
+    renderVisiblePosts({
+      skipUrl: !(options && options.replaceUrl),
+      replaceUrl: Boolean(options && options.replaceUrl),
+      postId: urlState.post,
+    });
+
+    if (urlState.post) {
+      openPostFromQuery(urlState.post);
+    } else if (modalEl && !modalEl.hidden) {
+      closeModal({ skipUrl: true });
     }
   }
 
@@ -638,23 +781,39 @@
         if (nextFilter === currentCategoryFilter) return;
 
         currentCategoryFilter = nextFilter;
-        categoryListEl.querySelectorAll(".instagram-category-link").forEach((item) => {
-          item.classList.toggle("is-current", item === button);
-        });
-        applyCategoryFilter();
+        currentPage = 1;
+        if (modalEl && !modalEl.hidden) {
+          closeModal({ skipUrl: true });
+        }
+        renderVisiblePosts({ postId: null });
+        scrollListingIntoView();
       });
     }
 
-    const loadMoreBtn = galleryRoot.querySelector(".instagram-load-more");
-    if (loadMoreBtn instanceof HTMLButtonElement) {
-      loadMoreBtn.addEventListener("click", () => {
-        const Classifications = window.InstagramClassifications;
-        visibleCount = Classifications
-          ? Classifications.nextVisibleCount(visibleCount, ARCHIVE_PAGE_SIZE)
-          : visibleCount + ARCHIVE_PAGE_SIZE;
-        renderVisiblePosts();
+    const paginationEl = galleryRoot.querySelector(".instagram-pagination");
+    if (paginationEl) {
+      paginationEl.addEventListener("click", (event) => {
+        const target = event.target;
+        if (!(target instanceof Element)) return;
+
+        const button = target.closest("[data-page]");
+        if (!(button instanceof HTMLButtonElement) || button.disabled || !button.dataset.page) return;
+
+        const nextPage = Number.parseInt(button.dataset.page, 10);
+        if (!Number.isFinite(nextPage) || nextPage === currentPage) return;
+
+        currentPage = nextPage;
+        if (modalEl && !modalEl.hidden) {
+          closeModal({ skipUrl: true });
+        }
+        renderVisiblePosts({ postId: null });
+        scrollListingIntoView();
       });
     }
+
+    window.addEventListener("popstate", () => {
+      applyUrlState();
+    });
   }
 
   /**
@@ -716,7 +875,7 @@
         listedPosts = [];
         posts = [];
         classificationsData = null;
-        visibleCount = ARCHIVE_PAGE_SIZE;
+        currentPage = 1;
         hideCategoryNav();
         showMessage(EMPTY_MESSAGE);
         openPostFromQuery();
@@ -725,18 +884,23 @@
 
       const Classifications = window.InstagramClassifications;
       classificationsData = classifications;
-      currentCategoryFilter = ALL_CATEGORY_FILTER;
       classifiedPosts = Classifications
         ? Classifications.selectClassifiedPosts(validPosts, classifications)
         : [];
+      const urlState = readUrlState();
+      currentCategoryFilter = urlState.category;
+      currentPage = urlState.page;
       renderCategoryNav(classifications);
-      applyCategoryFilter();
-      openPostFromQuery();
+      renderVisiblePosts({ skipUrl: true });
+      if (urlState.post) {
+        openPostFromQuery(urlState.post);
+      }
+      syncUrl({ replace: true, postId: urlState.post });
     } catch {
       filteredPosts = [];
       listedPosts = [];
       posts = [];
-      visibleCount = ARCHIVE_PAGE_SIZE;
+      currentPage = 1;
       showMessage(EMPTY_MESSAGE);
     }
   }

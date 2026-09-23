@@ -9,7 +9,7 @@
   <link rel="icon" type="image/png" sizes="192x192" href="images/favicon-192x192.png">
   <link rel="icon" type="image/png" sizes="512x512" href="images/favicon-512x512.png">
   <link rel="apple-touch-icon" href="images/apple-touch-icon.png">
-  <link rel="stylesheet" href="style.css?v=6">
+  <link rel="stylesheet" href="style.css?v=7">
 </head>
 <body>
 
@@ -36,27 +36,21 @@
       </div>
       <h1 class="page-title">Instagram</h1>
       <p class="page-lead">いろいろな日常を記録中 (・ω・)つ⊹₊˚✧･</p>
+      <p class="instagram-account-link">
+        <a href="https://www.instagram.com/tsumami_life/" target="_blank" rel="noopener noreferrer">Instagram アカウントを見る →</a>
+      </p>
     </header>
 
     <div data-instagram-gallery data-instagram-limit="12">
       <nav class="instagram-categories" aria-label="Instagramカテゴリー" hidden>
         <ul class="instagram-category-list"></ul>
       </nav>
-      <div class="gallery gallery-instagram instagram-gallery" hidden>
-        <a class="instagram-gallery-item instagram-cta-card" href="https://www.instagram.com/tsumami_life/" target="_blank" rel="noopener noreferrer" aria-label="Instagramでもっと見る">
-          <img class="instagram-cta-icon" src="images/instagram.png" alt="" width="72" height="72">
-          <span class="instagram-cta-text">Instagramで</span>
-          <span class="instagram-cta-more">もっと見る →</span>
-        </a>
-      </div>
+      <div class="gallery gallery-instagram instagram-gallery" hidden></div>
       <p class="instagram-gallery-message">読み込み中...</p>
-      <p class="instagram-load-more-wrap" hidden>
-        <button type="button" class="instagram-load-more">もっと見る</button>
-      </p>
+      <nav class="instagram-pagination" aria-label="投稿のページ" hidden>
+        <ul class="instagram-pagination-list"></ul>
+      </nav>
     </div>
-    <p class="section-link">
-      <a href="https://www.instagram.com/tsumami_life/" target="_blank" rel="noopener noreferrer">Instagram アカウントを見る →</a>
-    </p>
   </main>
 
   <footer class="site-footer">
@@ -81,7 +75,7 @@
     </div>
   </div>
 
-  <script src="js/instagram-classifications.js?v=3"></script>
-  <script src="js/instagram-gallery.js?v=6"></script>
+  <script src="js/instagram-classifications.js?v=4"></script>
+  <script src="js/instagram-gallery.js?v=7"></script>
 </body>
 </html>

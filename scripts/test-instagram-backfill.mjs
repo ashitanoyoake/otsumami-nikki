@@ -295,7 +295,7 @@ async function main() {
   assert(instagramHtml.includes('data-instagram-limit="12"'), "instagram.html の初期表示は12件");
   assert(indexHtml.includes('data-instagram-limit="3"'), "index.html の表示件数は3のまま");
   assert(galleryJs.includes("images/ui/new-badge.png"), "NEWバッジ画像参照は維持");
-  assert(galleryJs.includes("instagram-cta-card"), "SPのCTAカード処理は維持");
+  assert(!galleryJs.includes("instagram-cta-card"), "SPのCTAカードは使わない");
 
   const hourlyTargets = selectHourlyMediaPosts(merged.posts, hourlyIncoming);
   assert(hourlyTargets.length === 9, "毎時の画像処理対象は最新9投稿だけ");

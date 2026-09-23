@@ -1,5 +1,5 @@
 /**
- * Instagram 公開一覧の分類判定。実API / CMS は使わない。
+ * Instagram 公開一覧の分類判定とページネーション。実API / CMS は使わない。
  */
 import fs from "node:fs";
 import path from "node:path";
@@ -9,6 +9,7 @@ import { readExistingArchive } from "./fetch-instagram.mjs";
 
 const require = createRequire(import.meta.url);
 const {
+  ALL_CATEGORY_FILTER,
   ARCHIVE_PAGE_SIZE,
   parseClassifications,
   isClassifiedPost,
@@ -16,9 +17,15 @@ const {
   visibleCategories,
   selectPostsForCategory,
   resolveDirectPost,
-  sliceVisiblePosts,
-  nextVisibleCount,
-  shouldShowLoadMore,
+  normalizePage,
+  pageCount,
+  clampPage,
+  slicePage,
+  shouldShowPagination,
+  pageOfPost,
+  paginationItems,
+  parseArchiveSearch,
+  buildArchiveSearch,
 } = require("../js/instagram-classifications.js");
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -119,7 +126,7 @@ function main() {
     "すべて にも未分類は混入しない",
   );
 
-  const listed = sliceVisiblePosts(selected, ARCHIVE_PAGE_SIZE);
+  const listed = slicePage(selected, 1);
   const classifiedDirect = resolveDirectPost(firstId, listed, existingPosts);
   assert(classifiedDirect.listedIndex === 0, "分類済みの ?post= は一覧インデックスで開く");
   assert(classifiedDirect.directPost === null, "一覧にある投稿は directPost にしない");
@@ -137,70 +144,73 @@ function main() {
     "モーダル用の未分類投稿を一覧へ戻さない",
   );
 
-  assert(ARCHIVE_PAGE_SIZE === 12, "Instagramページの初期表示は12件");
-  assert(sliceVisiblePosts(null, 12).length === 0, "不正配列の slice は空");
-  assert(sliceVisiblePosts([{ id: "a" }], 0).length === 0, "visibleCount 0 は0件");
+  assert(ARCHIVE_PAGE_SIZE === 12, "1ページは12件");
+  assert(ALL_CATEGORY_FILTER === "all", "すべて の内部値は all");
+  assert(normalizePage("foo") === 1, "不正pageは1へ補正");
+  assert(normalizePage(0) === 1, "page=0 は1へ補正");
+  assert(normalizePage(-3) === 1, "負のpageは1へ補正");
+  assert(slicePage(null, 1).length === 0, "不正配列の slice は空");
 
   const ids = (posts) => posts.map((post) => String(post.id)).join(",");
   const makePosts = (count) => Array.from({ length: count }, (_, index) => ({ id: `p${index + 1}` }));
 
   const zero = makePosts(0);
-  assert(sliceVisiblePosts(zero, ARCHIVE_PAGE_SIZE).length === 0, "0件は0件表示");
-  assert(shouldShowLoadMore(ARCHIVE_PAGE_SIZE, 0) === false, "0件はもっと見るなし");
+  assert(slicePage(zero, 1).length === 0, "0件は0件表示");
+  assert(pageCount(0) === 0, "0件のページ数は0");
+  assert(shouldShowPagination(0) === false, "0件はページネーションなし");
 
   const one = makePosts(1);
-  assert(sliceVisiblePosts(one, ARCHIVE_PAGE_SIZE).length === 1, "1件は1件表示");
-  assert(shouldShowLoadMore(ARCHIVE_PAGE_SIZE, 1) === false, "1件はもっと見るなし");
+  assert(slicePage(one, 1).length === 1, "1件は1件表示");
+  assert(pageCount(1) === 1, "1件は1ページ");
+  assert(shouldShowPagination(1) === false, "1件はページネーションなし");
 
   const twelve = makePosts(12);
-  assert(sliceVisiblePosts(twelve, ARCHIVE_PAGE_SIZE).length === 12, "12件は12件表示");
-  assert(shouldShowLoadMore(ARCHIVE_PAGE_SIZE, 12) === false, "12件はもっと見るなし");
+  assert(slicePage(twelve, 1).length === 12, "12件は12件表示");
+  assert(pageCount(12) === 1, "12件は1ページ");
+  assert(shouldShowPagination(12) === false, "12件はページネーションなし");
 
   const thirteen = makePosts(13);
-  const thirteenFirst = sliceVisiblePosts(thirteen, ARCHIVE_PAGE_SIZE);
-  assert(thirteenFirst.length === 12, "13件は初期12件");
-  assert(ids(thirteenFirst) === ids(thirteen.slice(0, 12)), "13件の初期表示は新しい順の先頭12件");
-  assert(shouldShowLoadMore(ARCHIVE_PAGE_SIZE, 13) === true, "13件はもっと見るあり");
-  const thirteenAfter = sliceVisiblePosts(thirteen, nextVisibleCount(ARCHIVE_PAGE_SIZE));
-  assert(thirteenAfter.length === 13, "もっと見る後は13件");
-  assert(shouldShowLoadMore(nextVisibleCount(ARCHIVE_PAGE_SIZE), 13) === false, "13件表示後はボタンなし");
-  assert(thirteenAfter[12].id === "p13", "追加表示後の13件目の index は12");
+  const thirteenFirst = slicePage(thirteen, 1);
+  assert(thirteenFirst.length === 12, "13件の1ページ目は12件");
+  assert(ids(thirteenFirst) === ids(thirteen.slice(0, 12)), "1ページ目は新しい順の先頭12件");
+  assert(shouldShowPagination(13) === true, "13件はページネーションあり");
+  assert(pageCount(13) === 2, "13件は2ページ");
+  const thirteenSecond = slicePage(thirteen, 2);
+  assert(thirteenSecond.length === 1, "13件の2ページ目は1件");
+  assert(thirteenSecond[0].id === "p13", "2ページ目の index 0 は13件目");
+  assert(pageOfPost(thirteen, "p13") === 2, "13件目は2ページ");
 
   const twentyFour = makePosts(24);
-  assert(sliceVisiblePosts(twentyFour, ARCHIVE_PAGE_SIZE).length === 12, "24件は初期12件");
-  const twentyFourAfter = sliceVisiblePosts(twentyFour, nextVisibleCount(ARCHIVE_PAGE_SIZE));
-  assert(twentyFourAfter.length === 24, "24件は1回でもっと見る後24件");
-  assert(shouldShowLoadMore(24, 24) === false, "24件表示後はボタンなし");
-  assert(ids(twentyFourAfter) === ids(twentyFour), "もっと見る後も JSON 順を崩さない");
+  assert(pageCount(24) === 2, "24件は2ページ");
+  assert(slicePage(twentyFour, 1).length === 12, "24件の1ページ目は12件");
+  assert(slicePage(twentyFour, 2).length === 12, "24件の2ページ目は12件");
+  assert(ids(slicePage(twentyFour, 2)) === ids(twentyFour.slice(12, 24)), "2ページ目も JSON 順を崩さない");
+  assert(shouldShowPagination(24) === true, "24件はページネーションあり");
 
   const twentyFive = makePosts(25);
-  let visible = ARCHIVE_PAGE_SIZE;
-  assert(sliceVisiblePosts(twentyFive, visible).length === 12, "25件は初期12件");
-  assert(shouldShowLoadMore(visible, 25) === true, "25件の初期はもっと見るあり");
-  visible = nextVisibleCount(visible);
-  assert(sliceVisiblePosts(twentyFive, visible).length === 24, "25件は2ページ目で24件");
-  assert(shouldShowLoadMore(visible, 25) === true, "25件の24件表示ではもっと見るあり");
-  visible = nextVisibleCount(visible);
-  const twentyFiveAll = sliceVisiblePosts(twentyFive, visible);
-  assert(twentyFiveAll.length === 25, "25件は3ページ目で全件");
-  assert(shouldShowLoadMore(visible, 25) === false, "25件表示後はボタンなし");
-  assert(twentyFiveAll[24].id === "p25", "追加後の25件目の index は24");
+  assert(pageCount(25) === 3, "25件は3ページ");
+  assert(slicePage(twentyFive, 1).length === 12, "25件の1ページ目は12件");
+  assert(slicePage(twentyFive, 2).length === 12, "25件の2ページ目は12件");
+  assert(slicePage(twentyFive, 3).length === 1, "25件の最終ページは1件");
+  assert(slicePage(twentyFive, 3)[0].id === "p25", "最終ページの index 0 は25件目");
+
+  const oneFortyFive = makePosts(145);
+  assert(pageCount(145) === 13, "145件は13ページ");
+  assert(slicePage(oneFortyFive, 13).length === 1, "145件の最終ページは1件");
+  assert(clampPage(99, 145) === 13, "範囲外pageは最終ページへ補正");
+  assert(clampPage("abc", 145) === 1, "不正pageは1ページへ補正");
+  assert(pageOfPost(oneFortyFive, "p13") === 2, "13件目は2ページ");
+  assert(pageOfPost(oneFortyFive, "p145") === 13, "145件目は13ページ");
 
   const daily = makePosts(20).map((post, index) => ({
     ...post,
     category: index < 5 ? "c1" : "c2",
   }));
-  const afterAllExpanded = sliceVisiblePosts(daily, 24);
-  assert(afterAllExpanded.length === 20, "すべてで24件まで進めても総数は20");
+  assert(clampPage(2, 5) === 1, "カテゴリー切替後に件数不足なら1ページへ戻す");
   const dailyOnly = daily.filter((post) => post.category === "c1");
-  const resetVisible = ARCHIVE_PAGE_SIZE;
-  const dailyVisible = sliceVisiblePosts(dailyOnly, resetVisible);
-  assert(dailyVisible.length === 5, "カテゴリー切替後は先頭から再表示");
-  assert(dailyVisible[0].id === "p1", "切替後も配列先頭から出す");
-  assert(shouldShowLoadMore(resetVisible, dailyOnly.length) === false, "切替後に残りがなければボタンなし");
-  const allAgain = sliceVisiblePosts(daily, resetVisible);
-  assert(allAgain.length === 12, "すべてへ戻しても先頭12件から");
-  assert(allAgain[0].id === "p1" && allAgain[11].id === "p12", "戻したあとも新しい順の先頭12件");
+  assert(slicePage(dailyOnly, 1).length === 5, "カテゴリー切替後は先頭ページから再表示");
+  assert(shouldShowPagination(dailyOnly.length) === false, "1ページしかないカテゴリーはページネーションなし");
+  assert(slicePage(daily, 1)[0].id === "p1" && slicePage(daily, 1)[11].id === "p12", "すべてへ戻しても先頭12件から");
 
   const mixed = selectClassifiedPosts(
     [...thirteen, { id: secondId }],
@@ -210,11 +220,44 @@ function main() {
     }),
   );
   assert(mixed.every((post) => String(post.id) !== secondId), "ページング対象に未分類は混入しない");
-  assert(sliceVisiblePosts(mixed, 24).every((post) => String(post.id) !== secondId), "もっと見る後も未分類は混入しない");
+  assert(slicePage(mixed, 2).every((post) => String(post.id) !== secondId), "2ページ目にも未分類は混入しない");
 
   const beyondListed = resolveDirectPost("p13", thirteenFirst, thirteen);
-  assert(beyondListed.listedIndex === -1, "未表示の分類済みは listedIndex にしない");
-  assert(String(beyondListed.directPost && beyondListed.directPost.id) === "p13", "?post= は未表示でもモーダル用に返す");
+  assert(beyondListed.listedIndex === -1, "他ページの分類済みは listedIndex にしない");
+  assert(String(beyondListed.directPost && beyondListed.directPost.id) === "p13", "?post= は他ページでもモーダル用に返す");
+
+  assert(buildArchiveSearch({ category: "all", page: 1, post: null }) === "", "page=1 とすべて はURLから省略");
+  assert(buildArchiveSearch({ category: "c6", page: 2, post: "x" }) === "?category=c6&page=2&post=x", "category + page + post を共存できる");
+  assert(buildArchiveSearch({ category: "all", page: 2 }) === "?page=2", "すべて の2ページ目は page だけ");
+  assert(buildArchiveSearch({ category: "c6", page: 1 }) === "?category=c6", "カテゴリー1ページ目は page を省略");
+
+  const parsedSearch = parseArchiveSearch("?category=c6&page=3&post=abc", { validCategoryIds: ["c6"] });
+  assert(parsedSearch.category === "c6" && parsedSearch.page === 3 && parsedSearch.post === "abc", "URLから category / page / post を読む");
+  const invalidSearch = parseArchiveSearch("?category=missing&page=nope", { validCategoryIds: ["c6"] });
+  assert(invalidSearch.category === "all" && invalidSearch.page === 1, "不正な category / page は安全に戻す");
+
+  assert(paginationItems(1, 13).join(",") === "1,2,3,4,ellipsis,13", "13ページの先頭は省略表示");
+  assert(paginationItems(7, 13).join(",") === "1,ellipsis,6,7,8,ellipsis,13", "13ページの中間は省略表示");
+  assert(paginationItems(13, 13).join(",") === "1,ellipsis,10,11,12,13", "13ページの最終は省略表示");
+  assert(paginationItems(1, 1).join(",") === "1", "1ページの数字は1だけ");
+
+  const liveClassifications = parseClassifications(
+    JSON.parse(fs.readFileSync(path.join(REPO_ROOT, "data", "instagram-classifications.json"), "utf8")),
+  );
+  const liveClassified = selectClassifiedPosts(existingPosts, liveClassifications);
+  const liveCounts = Object.fromEntries(
+    (liveClassifications ? visibleCategories(liveClassifications) : []).map((category) => [
+      category.id,
+      selectPostsForCategory(liveClassified, liveClassifications, category.id).length,
+    ]),
+  );
+  assert(pageCount(liveClassified.length) === Math.ceil(liveClassified.length / 12), "本番のすべて のページ数は件数から計算できる");
+  Object.values(liveCounts).forEach((count) => {
+    assert(
+      shouldShowPagination(count) === count > 12,
+      "本番カテゴリーのページネーション表示は12件超だけ",
+    );
+  });
 
   const galleryJs = fs.readFileSync(path.join(REPO_ROOT, "js", "instagram-gallery.js"), "utf8");
   const instagramHtml = fs.readFileSync(path.join(REPO_ROOT, "instagram.html"), "utf8");
@@ -229,22 +272,28 @@ function main() {
   );
   assert(!indexHtml.includes("instagram-classifications.js"), "ホームは分類JSを読み込まない");
   assert(indexHtml.includes('data-instagram-limit="3"'), "ホームの件数は3のまま");
+  assert(!indexHtml.includes("instagram-pagination"), "ホームにページネーションを置かない");
   assert(!indexHtml.includes("instagram-load-more"), "ホームにサイト内もっと見るを置かない");
-  assert(instagramHtml.includes('data-instagram-limit="12"'), "Instagramページの初期表示は12件");
-  assert(instagramHtml.includes("instagram-load-more"), "Instagramページにサイト内もっと見るがある");
-  assert(instagramHtml.includes("Instagram アカウントを見る"), "既存のアカウントCTAは残す");
+  assert(instagramHtml.includes('data-instagram-limit="12"'), "Instagramページは12件ページ");
+  assert(instagramHtml.includes("instagram-pagination"), "Instagramページにページネーションがある");
+  assert(!instagramHtml.includes("instagram-load-more"), "旧もっと見るは削除する");
+  assert(!instagramHtml.includes("instagram-cta-card"), "SP専用CTAカードは削除する");
+  assert(instagramHtml.includes("instagram-account-link"), "アカウントリンクは上部へ移す");
+  assert(instagramHtml.includes("Instagram アカウントを見る"), "既存のアカウントCTA文言は残す");
   assert(instagramHtml.includes("instagram-classifications.js"), "Instagramページだけ分類ヘルパーを読む");
   assert(instagramHtml.includes("instagram-categories"), "Instagramページにカテゴリーナビがある");
   assert(!indexHtml.includes("instagram-categories"), "ホームにカテゴリーナビを置かない");
   assert(galleryJs.includes("ALL_CATEGORY_FILTER"), "すべて は公開側で先頭に足す");
-  assert(galleryJs.includes("applyCategoryFilter"), "同じページ内で絞り込む");
-  assert(galleryJs.includes("visibleCount = ARCHIVE_PAGE_SIZE"), "カテゴリー切替で12件へ戻す");
-  assert(galleryJs.includes("renderVisiblePosts"), "表示中の件数だけ描画する");
+  assert(galleryJs.includes("currentPage = 1"), "カテゴリー切替で1ページへ戻す");
+  assert(galleryJs.includes("slicePage"), "表示中の1ページだけ描画する");
+  assert(galleryJs.includes("popstate"), "戻る/進むに対応する");
+  assert(galleryJs.includes("buildArchiveSearch"), "category / page / post をURLに持つ");
   assert(galleryJs.includes('img.loading = "lazy"'), "lazy loading を維持する");
   assert(
     galleryJs.includes("if (isHomeGallery)") && galleryJs.includes("validPosts.slice(0, displayLimit)"),
     "ホームは従来どおり displayLimit 件だけ出す",
   );
+  assert(!galleryJs.includes("appendListingCtaCard"), "CTAカード生成は使わない");
 
   console.log(`Instagram classification tests: ${passed} passed, ${failed} failed`);
   if (failed > 0) {

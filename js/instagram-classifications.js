@@ -144,46 +144,181 @@
   }
 
   const ARCHIVE_PAGE_SIZE = 12;
+  const ALL_CATEGORY_FILTER = "all";
 
   /**
-   * 分類済み配列は全件保持し、描画は先頭 visibleCount 件だけ。
+   * @param {unknown} page
+   * @returns {number}
+   */
+  function normalizePage(page) {
+    const parsed = typeof page === "number" ? page : Number.parseInt(String(page), 10);
+    if (!Number.isFinite(parsed) || parsed < 1) {
+      return 1;
+    }
+    return Math.floor(parsed);
+  }
+
+  /**
+   * @param {number} total
+   * @param {number} [pageSize]
+   * @returns {number}
+   */
+  function pageCount(total, pageSize) {
+    const size = Number.isFinite(pageSize) && pageSize > 0 ? Math.floor(pageSize) : ARCHIVE_PAGE_SIZE;
+    if (!Number.isFinite(total) || total <= 0) {
+      return 0;
+    }
+    return Math.ceil(total / size);
+  }
+
+  /**
+   * @param {unknown} page
+   * @param {number} total
+   * @param {number} [pageSize]
+   * @returns {number}
+   */
+  function clampPage(page, total, pageSize) {
+    const pages = pageCount(total, pageSize);
+    const current = normalizePage(page);
+    if (pages <= 0) {
+      return 1;
+    }
+    return Math.min(current, pages);
+  }
+
+  /**
+   * 指定ページの12件だけを返す。instagram.json の順序は維持する。
    * @param {unknown[]} posts
-   * @param {number} visibleCount
+   * @param {unknown} page
+   * @param {number} [pageSize]
    * @returns {unknown[]}
    */
-  function sliceVisiblePosts(posts, visibleCount) {
+  function slicePage(posts, page, pageSize) {
     if (!Array.isArray(posts)) {
       return [];
     }
 
-    const count = Number.isFinite(visibleCount) && visibleCount > 0 ? Math.floor(visibleCount) : 0;
-    return posts.slice(0, count);
-  }
-
-  /**
-   * @param {number} visibleCount
-   * @param {number} [pageSize]
-   * @returns {number}
-   */
-  function nextVisibleCount(visibleCount, pageSize) {
-    const current = Number.isFinite(visibleCount) && visibleCount > 0 ? Math.floor(visibleCount) : 0;
     const size = Number.isFinite(pageSize) && pageSize > 0 ? Math.floor(pageSize) : ARCHIVE_PAGE_SIZE;
-    return current + size;
+    const current = clampPage(page, posts.length, size);
+    const start = (current - 1) * size;
+    return posts.slice(start, start + size);
   }
 
   /**
-   * 残りがある場合だけ「もっと見る」を出す。
-   * @param {number} visibleCount
-   * @param {number} totalCount
+   * @param {number} total
+   * @param {number} [pageSize]
    * @returns {boolean}
    */
-  function shouldShowLoadMore(visibleCount, totalCount) {
-    const visible = Number.isFinite(visibleCount) ? visibleCount : 0;
-    const total = Number.isFinite(totalCount) ? totalCount : 0;
-    return total > 0 && total > visible;
+  function shouldShowPagination(total, pageSize) {
+    return pageCount(total, pageSize) > 1;
+  }
+
+  /**
+   * @param {unknown[]} posts
+   * @param {unknown} postId
+   * @param {number} [pageSize]
+   * @returns {number | null}
+   */
+  function pageOfPost(posts, postId, pageSize) {
+    if (!Array.isArray(posts) || postId == null || postId === "") {
+      return null;
+    }
+
+    const index = posts.findIndex((post) => post && String(post.id) === String(postId));
+    if (index < 0) {
+      return null;
+    }
+
+    const size = Number.isFinite(pageSize) && pageSize > 0 ? Math.floor(pageSize) : ARCHIVE_PAGE_SIZE;
+    return Math.floor(index / size) + 1;
+  }
+
+  /**
+   * @param {unknown} currentPage
+   * @param {unknown} totalPages
+   * @returns {Array<number | "ellipsis">}
+   */
+  function paginationItems(currentPage, totalPages) {
+    const total = Number.isFinite(Number(totalPages)) ? Math.floor(Number(totalPages)) : 0;
+    if (total <= 0) {
+      return [];
+    }
+
+    const current = Math.min(normalizePage(currentPage), total);
+    if (total <= 7) {
+      return Array.from({ length: total }, (_, index) => index + 1);
+    }
+
+    const pages = new Set([1, total, current, current - 1, current + 1]);
+    if (current <= 3) {
+      pages.add(2);
+      pages.add(3);
+      pages.add(4);
+    }
+    if (current >= total - 2) {
+      pages.add(total - 3);
+      pages.add(total - 2);
+      pages.add(total - 1);
+    }
+
+    const sorted = [...pages].filter((page) => page >= 1 && page <= total).sort((left, right) => left - right);
+    /** @type {Array<number | "ellipsis">} */
+    const items = [];
+    sorted.forEach((page, index) => {
+      if (index > 0 && page - sorted[index - 1] > 1) {
+        items.push("ellipsis");
+      }
+      items.push(page);
+    });
+    return items;
+  }
+
+  /**
+   * @param {string | URLSearchParams | null | undefined} search
+   * @param {{ validCategoryIds?: string[] }} [options]
+   * @returns {{ category: string, page: number, post: string | null }}
+   */
+  function parseArchiveSearch(search, options) {
+    const params = search instanceof URLSearchParams
+      ? search
+      : new URLSearchParams(String(search || "").replace(/^\?/, ""));
+    const validCategoryIds = options && Array.isArray(options.validCategoryIds) ? options.validCategoryIds : [];
+    const rawCategory = params.get("category");
+    const category = rawCategory && validCategoryIds.includes(rawCategory) ? rawCategory : ALL_CATEGORY_FILTER;
+    const page = normalizePage(params.get("page"));
+    const post = params.get("post");
+    return {
+      category,
+      page,
+      post: post || null,
+    };
+  }
+
+  /**
+   * page=1 と category=all は URL から省略する。
+   * @param {{ category?: string | null, page?: unknown, post?: string | null }} [state]
+   * @returns {string}
+   */
+  function buildArchiveSearch(state) {
+    const params = new URLSearchParams();
+    const category = state && state.category;
+    const post = state && state.post;
+    if (category && category !== ALL_CATEGORY_FILTER) {
+      params.set("category", String(category));
+    }
+    const page = normalizePage(state && state.page);
+    if (page > 1) {
+      params.set("page", String(page));
+    }
+    if (post) {
+      params.set("post", String(post));
+    }
+    const query = params.toString();
+    return query ? `?${query}` : "";
   }
 
   const api = {
+    ALL_CATEGORY_FILTER,
     ARCHIVE_PAGE_SIZE,
     parseClassifications,
     isClassifiedPost,
@@ -191,9 +326,15 @@
     visibleCategories,
     selectPostsForCategory,
     resolveDirectPost,
-    sliceVisiblePosts,
-    nextVisibleCount,
-    shouldShowLoadMore,
+    normalizePage,
+    pageCount,
+    clampPage,
+    slicePage,
+    shouldShowPagination,
+    pageOfPost,
+    paginationItems,
+    parseArchiveSearch,
+    buildArchiveSearch,
   };
 
   root.InstagramClassifications = api;
