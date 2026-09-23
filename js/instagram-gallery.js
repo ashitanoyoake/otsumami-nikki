@@ -1,6 +1,7 @@
 /**
  * Instagram ギャラリー表示・モーダル
  * data/instagram.json を読み、instagram.html（最大9件）とホーム（最大3件）で共用する。
+ * ホームは分類JSONを使わず最新N件。Instagramページは分類済み投稿だけを一覧表示する。
  * 左右操作は投稿間ではなく、1投稿内の画像送りに使う。
  */
 (function () {
@@ -18,8 +19,10 @@
   if (!gridEl || !messageEl) return;
 
   const DATA_URL = new URL("data/instagram.json", window.location.href).href;
+  const CLASSIFICATIONS_URL = new URL("data/instagram-classifications.json", window.location.href).href;
   const LOADING_MESSAGE = "読み込み中...";
   const EMPTY_MESSAGE = "現在投稿を読み込めません。";
+  const ARCHIVE_EMPTY_MESSAGE = "現在公開中の投稿はありません。";
   const SWIPE_MIN_DISTANCE = 48;
   const SWIPE_HORIZONTAL_RATIO = 1.2;
 
@@ -61,7 +64,11 @@
   }
 
   /** @type {InstagramPost[]} */
+  let listedPosts = [];
+  /** @type {InstagramPost[]} */
   let posts = [];
+  /** @type {InstagramPost[]} */
+  let validPosts = [];
   let currentIndex = 0;
   let currentSlide = 0;
   /** @type {HTMLElement | null} */
@@ -172,9 +179,9 @@
 
       const slideCount = getPostSlides(post).length;
       const dateLabel = formatDateForAlt(post.timestamp);
-      const isLatest = index === 0;
+      const showNewBadge = isHomeGallery && index === 0;
       const labelParts = [dateLabel];
-      if (isLatest) {
+      if (showNewBadge) {
         labelParts.push("最新");
       }
       if (slideCount > 1) {
@@ -198,7 +205,7 @@
       thumb.appendChild(img);
       item.appendChild(thumb);
 
-      if (isLatest) {
+      if (showNewBadge) {
         const newBadge = document.createElement("img");
         newBadge.className = "instagram-new-badge";
         newBadge.src = NEW_BADGE_SRC;
@@ -338,6 +345,9 @@
     modalEl.hidden = true;
     modalEl.classList.remove("is-open");
     document.body.classList.remove("instagram-modal-open");
+    posts = listedPosts;
+    currentIndex = 0;
+    currentSlide = 0;
 
     if (lastFocusedElement) {
       lastFocusedElement.focus();
@@ -465,16 +475,34 @@
     bindSwipeEvents();
   }
 
+  function openListedModal(index) {
+    posts = listedPosts;
+    openModal(index);
+  }
+
   function openPostFromQuery() {
     if (isHomeGallery) return;
 
     const postId = new URLSearchParams(window.location.search).get("post");
     if (!postId) return;
 
-    const index = posts.findIndex((post) => String(post.id) === postId);
-    if (index < 0) return;
+    const Classifications = window.InstagramClassifications;
+    const resolved = Classifications
+      ? Classifications.resolveDirectPost(postId, listedPosts, validPosts)
+      : {
+          listedIndex: listedPosts.findIndex((post) => String(post.id) === postId),
+          directPost: validPosts.find((post) => String(post.id) === postId) || null,
+        };
 
-    openModal(index);
+    if (resolved.listedIndex >= 0) {
+      openListedModal(resolved.listedIndex);
+      return;
+    }
+
+    if (resolved.directPost) {
+      posts = [resolved.directPost];
+      openModal(0);
+    }
   }
 
   function bindGalleryEvents() {
@@ -487,8 +515,29 @@
       const button = target.closest(".instagram-gallery-item");
       if (!button || !button.dataset.index) return;
 
-      openModal(Number(button.dataset.index));
+      openListedModal(Number(button.dataset.index));
     });
+  }
+
+  /**
+   * Instagramページ専用。ホームでは呼ばない。
+   * @returns {Promise<{ categories: Array<{ id: string, name: string }>, assignments: Record<string, string> } | null>}
+   */
+  async function loadClassifications() {
+    const Classifications = window.InstagramClassifications;
+    if (!Classifications) {
+      return null;
+    }
+
+    try {
+      const response = await fetch(CLASSIFICATIONS_URL, { cache: "no-cache" });
+      if (!response.ok) {
+        return null;
+      }
+      return Classifications.parseClassifications(await response.json());
+    } catch {
+      return null;
+    }
   }
 
   async function init() {
@@ -509,18 +558,45 @@
         return;
       }
 
-      posts = data.posts
-        .filter((post) => post && post.permalink && resolveMediaUrl(post))
-        .slice(0, displayLimit);
+      validPosts = data.posts.filter((post) => post && post.permalink && resolveMediaUrl(post));
 
-      if (posts.length === 0) {
-        showMessage(EMPTY_MESSAGE);
+      if (isHomeGallery) {
+        listedPosts = validPosts.slice(0, displayLimit);
+        posts = listedPosts;
+        if (listedPosts.length === 0) {
+          showMessage(EMPTY_MESSAGE);
+          return;
+        }
+        renderGallery(listedPosts);
         return;
       }
 
-      renderGallery(posts);
+      const classifications = await loadClassifications();
+      if (!classifications) {
+        listedPosts = [];
+        posts = [];
+        showMessage(EMPTY_MESSAGE);
+        openPostFromQuery();
+        return;
+      }
+
+      const Classifications = window.InstagramClassifications;
+      listedPosts = Classifications
+        ? Classifications.selectClassifiedPosts(validPosts, classifications).slice(0, displayLimit)
+        : [];
+      posts = listedPosts;
+
+      if (listedPosts.length === 0) {
+        showMessage(ARCHIVE_EMPTY_MESSAGE);
+        openPostFromQuery();
+        return;
+      }
+
+      renderGallery(listedPosts);
       openPostFromQuery();
     } catch {
+      listedPosts = [];
+      posts = [];
       showMessage(EMPTY_MESSAGE);
     }
   }
