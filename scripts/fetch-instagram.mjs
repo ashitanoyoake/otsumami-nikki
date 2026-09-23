@@ -3,7 +3,8 @@
  * 新規画像は Cloudflare R2（otsumami-instagram）へ保存し、
  * 公開サイトは https://instagram-media.otsumaminikki.com を参照する。
  *
- * - API の取得件数は最新9件のまま（ページネーション／バックフィルはしない）
+ * - 毎時実行は最新9件のみ取得する（ページネーションしない）
+ * - 過去投稿の初回取得は backfill-instagram-archive.mjs が担当する
  * - 既存投稿は最新9件から外れても削除しない
  * - 既存の R2 オブジェクト／移行元ローカル画像は Media ID 単位で再取得しない
  * - 取得失敗時は既存 JSON / 保存済み画像を壊さない
@@ -24,7 +25,11 @@ const TEMP_JSON_PATH = `${OUTPUT_PATH}.tmp`;
 const API_HOST = "https://graph.instagram.com";
 const API_VERSION = "v21.0";
 export const POST_LIMIT = 9;
+export const BACKFILL_PAGE_SIZE = 25;
+export const BACKFILL_MAX_PAGES = 50;
+export const BACKFILL_MAX_UPLOADS = 80;
 const EXIT_FAILURE = 1;
+const API_TIMEOUT_MS = 30_000;
 const DOWNLOAD_TIMEOUT_MS = 30_000;
 const MAX_IMAGE_BYTES = 15 * 1024 * 1024;
 const MIN_IMAGE_BYTES = 8;
@@ -37,7 +42,7 @@ const FIELDS = [
   "permalink",
   "thumbnail_url",
   "timestamp",
-  "children{media_type,media_url,thumbnail_url}",
+  "children{id,media_type,media_url,thumbnail_url}",
 ].join(",");
 
 const CONTENT_TYPE_EXTENSIONS = {
@@ -121,6 +126,102 @@ export function isLocalMediaPath(value) {
  */
 export function isStoredMediaUrl(value) {
   return isLocalMediaPath(value) || isR2PublicUrl(value);
+}
+
+/**
+ * @param {Record<string, unknown> | null | undefined} item
+ * @returns {string | null}
+ */
+export function getStoredR2Url(item) {
+  if (!item) {
+    return null;
+  }
+  if (isR2PublicUrl(item.local_media_path)) {
+    return item.local_media_path;
+  }
+  if (isR2PublicUrl(item.media_url)) {
+    return item.media_url;
+  }
+  if (isR2PublicUrl(item.thumbnail_url)) {
+    return item.thumbnail_url;
+  }
+  return null;
+}
+
+/**
+ * 毎時処理で画像保存する投稿だけを取り出す。マージ済み配列の参照を返す。
+ * @param {Record<string, unknown>[]} mergedPosts
+ * @param {Record<string, unknown>[]} incomingPosts
+ * @returns {Record<string, unknown>[]}
+ */
+export function selectHourlyMediaPosts(mergedPosts, incomingPosts) {
+  const incomingIds = new Set(
+    incomingPosts
+      .filter((post) => post && post.id != null && post.id !== "")
+      .map((post) => String(post.id)),
+  );
+  return mergedPosts.filter((post) => post && incomingIds.has(String(post.id)));
+}
+
+/**
+ * @param {Record<string, unknown>} item
+ * @returns {boolean}
+ */
+export function mediaItemNeedsR2(item) {
+  return Boolean(item) && isSafeMediaId(String(item.id || "")) && !getStoredR2Url(item);
+}
+
+/**
+ * R2未保存の画像枚数。カルーセルは children、VIDEO は投稿本体（サムネイル）を数える。
+ * @param {Record<string, unknown>[]} posts
+ * @returns {number}
+ */
+export function countPendingMedia(posts) {
+  let count = 0;
+  posts.forEach((post) => {
+    if (!post || typeof post !== "object") {
+      return;
+    }
+    const children = Array.isArray(post.children) ? post.children : [];
+    if (children.length > 0) {
+      children.forEach((child) => {
+        if (mediaItemNeedsR2(child)) {
+          count += 1;
+        }
+      });
+      return;
+    }
+    if (mediaItemNeedsR2(post)) {
+      count += 1;
+    }
+  });
+  return count;
+}
+
+/**
+ * @param {unknown} paging
+ * @returns {string | null}
+ */
+export function readAfterCursor(paging) {
+  if (!paging || typeof paging !== "object") {
+    return null;
+  }
+
+  const record = /** @type {{ cursors?: { after?: unknown }, next?: unknown }} */ (paging);
+  const after = record.cursors && typeof record.cursors.after === "string" ? record.cursors.after : "";
+  if (after) {
+    return after;
+  }
+
+  if (typeof record.next === "string" && record.next) {
+    try {
+      return new URL(record.next).searchParams.get("after");
+    } catch {
+      return null;
+    }
+  }
+
+  return null;
 }
 
 /**
@@ -760,6 +861,8 @@ function getDownloadTarget(item) {
  *   store: { has: Function, put: Function },
  *   mediaDir?: string,
  *   fetchImpl?: typeof fetch,
+ *   maxUploads?: number,
+ *   trustStoredUrl?: boolean,
  * }} options
  */
 export async function savePostsMedia(posts, options) {
@@ -767,10 +870,18 @@ export async function savePostsMedia(posts, options) {
     throw new Error("media store is required");
   }
 
+  const maxUploads =
+    typeof options.maxUploads === "number" && options.maxUploads >= 0
+      ? options.maxUploads
+      : Number.POSITIVE_INFINITY;
+  const trustStoredUrl = options.trustStoredUrl !== false;
+
   const stats = {
     downloaded: 0,
     skipped: 0,
     failed: 0,
+    deferred: 0,
+    remaining: 0,
   };
 
   /**
@@ -779,6 +890,16 @@ export async function savePostsMedia(posts, options) {
   async function persistItem(item) {
     const id = item.id != null ? String(item.id) : "";
     if (!isSafeMediaId(id)) {
+      return;
+    }
+
+    if (trustStoredUrl && getStoredR2Url(item)) {
+      stats.skipped += 1;
+      return;
+    }
+
+    if (stats.downloaded >= maxUploads) {
+      stats.deferred += 1;
       return;
     }
 
@@ -833,6 +954,7 @@ export async function savePostsMedia(posts, options) {
     await persistItem(post);
   }
 
+  stats.remaining = countPendingMedia(posts);
   return stats;
 }
 
@@ -862,9 +984,11 @@ export function writeArchiveIfChanged(outputPath, existing, posts) {
 /**
  * @param {string} accessToken
  * @param {string} userId
+ * @param {{ fetchImpl?: typeof fetch }} [options]
  * @returns {Promise<Record<string, unknown>[]>}
  */
-async function fetchInstagramPosts(accessToken, userId) {
+export async function fetchInstagramPosts(accessToken, userId, options = {}) {
+  const fetchImpl = options.fetchImpl || fetch;
   const params = new URLSearchParams({
     fields: FIELDS,
     limit: String(POST_LIMIT),
@@ -872,7 +996,10 @@ async function fetchInstagramPosts(accessToken, userId) {
   });
 
   const url = `${API_HOST}/${API_VERSION}/${userId}/media?${params}`;
-  const response = await fetch(url);
+  const response = await fetchImpl(url, {
+    signal: AbortSignal.timeout(API_TIMEOUT_MS),
+    headers: { Accept: "application/json" },
+  });
   const bodyText = await response.text();
 
   let data;
@@ -893,6 +1020,121 @@ async function fetchInstagramPosts(accessToken, userId) {
 
   const items = data && Array.isArray(data.data) ? data.data : [];
   return items.map(normalizePost).filter(Boolean).slice(0, POST_LIMIT);
+}
+
+/**
+ * 調査済みの paging.cursors.after で API 終端まで取得する。
+ * paging.next はトークンを含むため使わず、after だけを組み立て直す。
+ *
+ * @param {string} accessToken
+ * @param {string} userId
+ * @param {{
+ *   fetchImpl?: typeof fetch,
+ *   pageSize?: number,
+ *   maxPages?: number,
+ *   log?: (message: string) => void,
+ * }} [options]
+ * @returns {Promise<{
+ *   posts: Record<string, unknown>[],
+ *   pagesFetched: number,
+ *   stoppedReason: "end" | "max_pages" | "repeat_cursor",
+ * }>}
+ */
+export async function fetchInstagramPostsPaged(accessToken, userId, options = {}) {
+  const fetchImpl = options.fetchImpl || fetch;
+  const pageSize = options.pageSize || BACKFILL_PAGE_SIZE;
+  const maxPages = options.maxPages || BACKFILL_MAX_PAGES;
+  const log = options.log || (() => {});
+  const seenIds = new Set();
+  const seenCursors = new Set();
+  const posts = [];
+  let pagesFetched = 0;
+  let stoppedReason = /** @type {"end" | "max_pages" | "repeat_cursor"} */ ("end");
+  let after = /** @type {string | null} */ (null);
+
+  while (true) {
+    if (pagesFetched >= maxPages) {
+      stoppedReason = "max_pages";
+      break;
+    }
+    const params = new URLSearchParams({
+      fields: FIELDS,
+      limit: String(pageSize),
+      access_token: accessToken,
+    });
+    if (after) {
+      params.set("after", after);
+    }
+
+    const url = `${API_HOST}/${API_VERSION}/${userId}/media?${params}`;
+    const response = await fetchImpl(url, {
+      signal: AbortSignal.timeout(API_TIMEOUT_MS),
+      headers: { Accept: "application/json" },
+    });
+    const bodyText = await response.text();
+    let data;
+
+    try {
+      data = bodyText ? JSON.parse(bodyText) : null;
+    } catch {
+      throw new Error(formatSafeApiError(response.status, ""));
+    }
+
+    if (!response.ok || (data && typeof data === "object" && data.error)) {
+      throw new Error(formatSafeApiError(response.status, bodyText));
+    }
+
+    const pageItems = data && Array.isArray(data.data) ? data.data : [];
+    const paging = data && typeof data === "object" ? data.paging : null;
+    const pageNumber = pagesFetched + 1;
+    let accepted = 0;
+
+    pageItems.forEach((raw) => {
+      const normalized = normalizePost(raw);
+      if (!normalized || normalized.id == null || normalized.id === "") {
+        return;
+      }
+      const id = String(normalized.id);
+      if (seenIds.has(id)) {
+        return;
+      }
+      seenIds.add(id);
+      posts.push(normalized);
+      accepted += 1;
+    });
+
+    pagesFetched += 1;
+    const nextAfter = readAfterCursor(paging);
+    log(
+      `page=${pageNumber} count=${pageItems.length} unique=${accepted} total=${posts.length} has_next=${
+        nextAfter ? "yes" : "no"
+      }`,
+    );
+
+    if (pageItems.length === 0) {
+      stoppedReason = "end";
+      break;
+    }
+
+    if (!nextAfter) {
+      stoppedReason = "end";
+      break;
+    }
+
+    if (seenCursors.has(nextAfter)) {
+      stoppedReason = "repeat_cursor";
+      break;
+    }
+
+    seenCursors.add(nextAfter);
+    after = nextAfter;
+  }
+
+  return {
+    posts,
+    pagesFetched,
+    stoppedReason,
+  };
 }
 
 function cleanupTmpFiles() {
@@ -929,9 +1171,11 @@ async function main() {
     const existing = readExistingArchive(OUTPUT_PATH);
     const merged = mergeArchives(existing.posts, incoming);
     const store = createR2MediaStore(r2Config);
-    const mediaStats = await savePostsMedia(merged.posts, {
+    const hourlyPosts = selectHourlyMediaPosts(merged.posts, incoming);
+    const mediaStats = await savePostsMedia(hourlyPosts, {
       store,
       mediaDir: MEDIA_DIR,
+      trustStoredUrl: true,
     });
     const wroteJson = writeArchiveIfChanged(OUTPUT_PATH, existing, merged.posts);
 
