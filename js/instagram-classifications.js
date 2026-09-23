@@ -82,6 +82,46 @@
   }
 
   /**
+   * 公開ナビに出すカテゴリー。配列順を維持し、「未分類」は出さない。
+   * @param {{ categories: Array<{ id: string, name: string }> } | null | undefined} classifications
+   * @returns {Array<{ id: string, name: string }>}
+   */
+  function visibleCategories(classifications) {
+    if (!classifications || !Array.isArray(classifications.categories)) {
+      return [];
+    }
+
+    return classifications.categories.filter((category) => category && category.name !== "未分類");
+  }
+
+  /**
+   * @param {unknown[]} classifiedPosts
+   * @param {{ assignments: Record<string, string> } | null | undefined} classifications
+   * @param {string} categoryId
+   * @returns {unknown[]}
+   */
+  function selectPostsForCategory(classifiedPosts, classifications, categoryId) {
+    if (!Array.isArray(classifiedPosts)) {
+      return [];
+    }
+
+    if (!categoryId || categoryId === "all") {
+      return classifiedPosts;
+    }
+
+    if (!classifications || !classifications.assignments) {
+      return [];
+    }
+
+    return classifiedPosts.filter((post) => {
+      if (!post || post.id == null) {
+        return false;
+      }
+      return classifications.assignments[String(post.id)] === categoryId;
+    });
+  }
+
+  /**
    * 一覧用の分類済み投稿と、?post= で直接開く投稿を分ける。
    * 未分類の直接指定は listedPosts には入れない。
    * @param {string | null} postId
@@ -107,6 +147,8 @@
     parseClassifications,
     isClassifiedPost,
     selectClassifiedPosts,
+    visibleCategories,
+    selectPostsForCategory,
     resolveDirectPost,
   };
 

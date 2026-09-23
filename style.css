@@ -960,6 +960,59 @@ body.instagram-modal-open {
 
 
 /* ========================================
+   Instagram カテゴリー
+   ======================================== */
+
+.instagram-categories {
+  margin: 0 0 1.6rem;
+  padding-bottom: 1.2rem;
+  border-bottom: 1px solid #eee;
+}
+
+.instagram-categories[hidden] {
+  display: none;
+}
+
+.instagram-category-list {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.4rem 1.4rem;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.instagram-category-link {
+  display: inline-block;
+  padding: 0.2rem 0;
+  font-size: 0.82rem;
+  letter-spacing: 0.06em;
+  color: #888;
+  border-bottom: 2px solid transparent;
+}
+
+button.instagram-category-link {
+  appearance: none;
+  background: none;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  cursor: pointer;
+  font-family: inherit;
+  line-height: inherit;
+}
+
+.instagram-category-link:hover,
+.instagram-category-link.is-current {
+  color: var(--accent);
+  text-decoration: none;
+}
+
+.instagram-category-link.is-current {
+  border-bottom-color: var(--accent);
+}
+
+/* ========================================
    お仕事一覧ページ
    ======================================== */
 

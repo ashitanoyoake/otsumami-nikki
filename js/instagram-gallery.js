@@ -23,6 +23,7 @@
   const LOADING_MESSAGE = "読み込み中...";
   const EMPTY_MESSAGE = "現在投稿を読み込めません。";
   const ARCHIVE_EMPTY_MESSAGE = "現在公開中の投稿はありません。";
+  const ALL_CATEGORY_FILTER = "all";
   const SWIPE_MIN_DISTANCE = 48;
   const SWIPE_HORIZONTAL_RATIO = 1.2;
 
@@ -64,11 +65,16 @@
   }
 
   /** @type {InstagramPost[]} */
+  let classifiedPosts = [];
+  /** @type {InstagramPost[]} */
   let listedPosts = [];
   /** @type {InstagramPost[]} */
   let posts = [];
   /** @type {InstagramPost[]} */
   let validPosts = [];
+  /** @type {{ categories: Array<{ id: string, name: string }>, assignments: Record<string, string> } | null} */
+  let classificationsData = null;
+  let currentCategoryFilter = ALL_CATEGORY_FILTER;
   let currentIndex = 0;
   let currentSlide = 0;
   /** @type {HTMLElement | null} */
@@ -152,6 +158,73 @@
   function showGallery() {
     messageEl.setAttribute("hidden", "");
     gridEl.removeAttribute("hidden");
+  }
+
+  function hideCategoryNav() {
+    const navEl = galleryRoot.querySelector(".instagram-categories");
+    if (navEl instanceof HTMLElement) {
+      navEl.hidden = true;
+    }
+  }
+
+  /**
+   * @param {{ categories: Array<{ id: string, name: string }>, assignments: Record<string, string> }} classifications
+   */
+  function renderCategoryNav(classifications) {
+    if (isHomeGallery) {
+      return;
+    }
+
+    const navEl = galleryRoot.querySelector(".instagram-categories");
+    const listEl = galleryRoot.querySelector(".instagram-category-list");
+    const Classifications = window.InstagramClassifications;
+    if (!(navEl instanceof HTMLElement) || !(listEl instanceof HTMLElement) || !Classifications) {
+      return;
+    }
+
+    const categories = Classifications.visibleCategories(classifications);
+    listEl.innerHTML = "";
+
+    /**
+     * @param {string} filter
+     * @param {string} label
+     */
+    function appendLink(filter, label) {
+      const item = document.createElement("li");
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = "instagram-category-link";
+      if (filter === currentCategoryFilter) {
+        button.classList.add("is-current");
+      }
+      button.dataset.filter = filter;
+      button.textContent = label;
+      item.appendChild(button);
+      listEl.appendChild(item);
+    }
+
+    appendLink(ALL_CATEGORY_FILTER, "すべて");
+    categories.forEach((category) => {
+      appendLink(category.id, category.name || category.id);
+    });
+
+    navEl.hidden = false;
+  }
+
+  function applyCategoryFilter() {
+    const Classifications = window.InstagramClassifications;
+    const filtered = Classifications
+      ? Classifications.selectPostsForCategory(classifiedPosts, classificationsData, currentCategoryFilter)
+      : [];
+    listedPosts = filtered.slice(0, displayLimit);
+    posts = listedPosts;
+
+    if (listedPosts.length === 0) {
+      showMessage(ARCHIVE_EMPTY_MESSAGE);
+      return;
+    }
+
+    renderGallery(listedPosts);
   }
 
   /**
@@ -517,6 +590,26 @@
 
       openListedModal(Number(button.dataset.index));
     });
+
+    const categoryListEl = galleryRoot.querySelector(".instagram-category-list");
+    if (categoryListEl) {
+      categoryListEl.addEventListener("click", (event) => {
+        const target = event.target;
+        if (!(target instanceof Element)) return;
+
+        const button = target.closest(".instagram-category-link");
+        if (!(button instanceof HTMLButtonElement) || !button.dataset.filter) return;
+
+        const nextFilter = button.dataset.filter;
+        if (nextFilter === currentCategoryFilter) return;
+
+        currentCategoryFilter = nextFilter;
+        categoryListEl.querySelectorAll(".instagram-category-link").forEach((item) => {
+          item.classList.toggle("is-current", item === button);
+        });
+        applyCategoryFilter();
+      });
+    }
   }
 
   /**
@@ -573,26 +666,24 @@
 
       const classifications = await loadClassifications();
       if (!classifications) {
+        classifiedPosts = [];
         listedPosts = [];
         posts = [];
+        classificationsData = null;
+        hideCategoryNav();
         showMessage(EMPTY_MESSAGE);
         openPostFromQuery();
         return;
       }
 
       const Classifications = window.InstagramClassifications;
-      listedPosts = Classifications
-        ? Classifications.selectClassifiedPosts(validPosts, classifications).slice(0, displayLimit)
+      classificationsData = classifications;
+      currentCategoryFilter = ALL_CATEGORY_FILTER;
+      classifiedPosts = Classifications
+        ? Classifications.selectClassifiedPosts(validPosts, classifications)
         : [];
-      posts = listedPosts;
-
-      if (listedPosts.length === 0) {
-        showMessage(ARCHIVE_EMPTY_MESSAGE);
-        openPostFromQuery();
-        return;
-      }
-
-      renderGallery(listedPosts);
+      renderCategoryNav(classifications);
+      applyCategoryFilter();
       openPostFromQuery();
     } catch {
       listedPosts = [];

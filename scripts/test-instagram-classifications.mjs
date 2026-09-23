@@ -12,6 +12,8 @@ const {
   parseClassifications,
   isClassifiedPost,
   selectClassifiedPosts,
+  visibleCategories,
+  selectPostsForCategory,
   resolveDirectPost,
 } = require("../js/instagram-classifications.js");
 
@@ -85,6 +87,34 @@ function main() {
   );
   assert(selectClassifiedPosts(existingPosts, null).length === 0, "分類失敗時は0件（全件フォールバックしない）");
 
+  const withHidden = parseClassifications({
+    categories: [
+      { id: "c1", name: "日常" },
+      { id: "c9", name: "未分類" },
+      { id: "c2", name: "食べ物" },
+    ],
+    assignments: {
+      [firstId]: "c1",
+      [thirdId]: "c2",
+    },
+  });
+  const navCategories = visibleCategories(withHidden);
+  assert(navCategories.map((item) => item.id).join(",") === "c1,c2", "ナビは categories 配列順で未分類を除く");
+  assert(
+    selectPostsForCategory(selected, parsed, "all").length === 2,
+    "すべて は分類済み全件",
+  );
+  assert(
+    selectPostsForCategory(selected, parsed, "c1").map((post) => String(post.id)).join(",") === firstId,
+    "選択カテゴリーの投稿だけ残す",
+  );
+  assert(selectPostsForCategory(selected, parsed, "c2").length === 1, "別カテゴリーも絞り込める");
+  assert(selectPostsForCategory(selected, parsed, "empty").length === 0, "投稿0件のカテゴリーは空配列");
+  assert(
+    selectPostsForCategory(selected, parsed, "all").every((post) => isClassifiedPost(post, parsed)),
+    "すべて にも未分類は混入しない",
+  );
+
   const listed = selected.slice(0, 9);
   const classifiedDirect = resolveDirectPost(firstId, listed, existingPosts);
   assert(classifiedDirect.listedIndex === 0, "分類済みの ?post= は一覧インデックスで開く");
@@ -118,6 +148,10 @@ function main() {
   assert(indexHtml.includes('data-instagram-limit="3"'), "ホームの件数は3のまま");
   assert(instagramHtml.includes('data-instagram-limit="9"'), "Instagramページの件数は9のまま");
   assert(instagramHtml.includes("instagram-classifications.js"), "Instagramページだけ分類ヘルパーを読む");
+  assert(instagramHtml.includes("instagram-categories"), "Instagramページにカテゴリーナビがある");
+  assert(!indexHtml.includes("instagram-categories"), "ホームにカテゴリーナビを置かない");
+  assert(galleryJs.includes("ALL_CATEGORY_FILTER"), "すべて は公開側で先頭に足す");
+  assert(galleryJs.includes("applyCategoryFilter"), "同じページ内で絞り込む");
   assert(galleryJs.includes('img.loading = "lazy"'), "lazy loading を維持する");
 
   console.log(`Instagram classification tests: ${passed} passed, ${failed} failed`);
