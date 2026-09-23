@@ -9,12 +9,16 @@ import { readExistingArchive } from "./fetch-instagram.mjs";
 
 const require = createRequire(import.meta.url);
 const {
+  ARCHIVE_PAGE_SIZE,
   parseClassifications,
   isClassifiedPost,
   selectClassifiedPosts,
   visibleCategories,
   selectPostsForCategory,
   resolveDirectPost,
+  sliceVisiblePosts,
+  nextVisibleCount,
+  shouldShowLoadMore,
 } = require("../js/instagram-classifications.js");
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -115,7 +119,7 @@ function main() {
     "すべて にも未分類は混入しない",
   );
 
-  const listed = selected.slice(0, 9);
+  const listed = sliceVisiblePosts(selected, ARCHIVE_PAGE_SIZE);
   const classifiedDirect = resolveDirectPost(firstId, listed, existingPosts);
   assert(classifiedDirect.listedIndex === 0, "分類済みの ?post= は一覧インデックスで開く");
   assert(classifiedDirect.directPost === null, "一覧にある投稿は directPost にしない");
@@ -133,6 +137,85 @@ function main() {
     "モーダル用の未分類投稿を一覧へ戻さない",
   );
 
+  assert(ARCHIVE_PAGE_SIZE === 12, "Instagramページの初期表示は12件");
+  assert(sliceVisiblePosts(null, 12).length === 0, "不正配列の slice は空");
+  assert(sliceVisiblePosts([{ id: "a" }], 0).length === 0, "visibleCount 0 は0件");
+
+  const ids = (posts) => posts.map((post) => String(post.id)).join(",");
+  const makePosts = (count) => Array.from({ length: count }, (_, index) => ({ id: `p${index + 1}` }));
+
+  const zero = makePosts(0);
+  assert(sliceVisiblePosts(zero, ARCHIVE_PAGE_SIZE).length === 0, "0件は0件表示");
+  assert(shouldShowLoadMore(ARCHIVE_PAGE_SIZE, 0) === false, "0件はもっと見るなし");
+
+  const one = makePosts(1);
+  assert(sliceVisiblePosts(one, ARCHIVE_PAGE_SIZE).length === 1, "1件は1件表示");
+  assert(shouldShowLoadMore(ARCHIVE_PAGE_SIZE, 1) === false, "1件はもっと見るなし");
+
+  const twelve = makePosts(12);
+  assert(sliceVisiblePosts(twelve, ARCHIVE_PAGE_SIZE).length === 12, "12件は12件表示");
+  assert(shouldShowLoadMore(ARCHIVE_PAGE_SIZE, 12) === false, "12件はもっと見るなし");
+
+  const thirteen = makePosts(13);
+  const thirteenFirst = sliceVisiblePosts(thirteen, ARCHIVE_PAGE_SIZE);
+  assert(thirteenFirst.length === 12, "13件は初期12件");
+  assert(ids(thirteenFirst) === ids(thirteen.slice(0, 12)), "13件の初期表示は新しい順の先頭12件");
+  assert(shouldShowLoadMore(ARCHIVE_PAGE_SIZE, 13) === true, "13件はもっと見るあり");
+  const thirteenAfter = sliceVisiblePosts(thirteen, nextVisibleCount(ARCHIVE_PAGE_SIZE));
+  assert(thirteenAfter.length === 13, "もっと見る後は13件");
+  assert(shouldShowLoadMore(nextVisibleCount(ARCHIVE_PAGE_SIZE), 13) === false, "13件表示後はボタンなし");
+  assert(thirteenAfter[12].id === "p13", "追加表示後の13件目の index は12");
+
+  const twentyFour = makePosts(24);
+  assert(sliceVisiblePosts(twentyFour, ARCHIVE_PAGE_SIZE).length === 12, "24件は初期12件");
+  const twentyFourAfter = sliceVisiblePosts(twentyFour, nextVisibleCount(ARCHIVE_PAGE_SIZE));
+  assert(twentyFourAfter.length === 24, "24件は1回でもっと見る後24件");
+  assert(shouldShowLoadMore(24, 24) === false, "24件表示後はボタンなし");
+  assert(ids(twentyFourAfter) === ids(twentyFour), "もっと見る後も JSON 順を崩さない");
+
+  const twentyFive = makePosts(25);
+  let visible = ARCHIVE_PAGE_SIZE;
+  assert(sliceVisiblePosts(twentyFive, visible).length === 12, "25件は初期12件");
+  assert(shouldShowLoadMore(visible, 25) === true, "25件の初期はもっと見るあり");
+  visible = nextVisibleCount(visible);
+  assert(sliceVisiblePosts(twentyFive, visible).length === 24, "25件は2ページ目で24件");
+  assert(shouldShowLoadMore(visible, 25) === true, "25件の24件表示ではもっと見るあり");
+  visible = nextVisibleCount(visible);
+  const twentyFiveAll = sliceVisiblePosts(twentyFive, visible);
+  assert(twentyFiveAll.length === 25, "25件は3ページ目で全件");
+  assert(shouldShowLoadMore(visible, 25) === false, "25件表示後はボタンなし");
+  assert(twentyFiveAll[24].id === "p25", "追加後の25件目の index は24");
+
+  const daily = makePosts(20).map((post, index) => ({
+    ...post,
+    category: index < 5 ? "c1" : "c2",
+  }));
+  const afterAllExpanded = sliceVisiblePosts(daily, 24);
+  assert(afterAllExpanded.length === 20, "すべてで24件まで進めても総数は20");
+  const dailyOnly = daily.filter((post) => post.category === "c1");
+  const resetVisible = ARCHIVE_PAGE_SIZE;
+  const dailyVisible = sliceVisiblePosts(dailyOnly, resetVisible);
+  assert(dailyVisible.length === 5, "カテゴリー切替後は先頭から再表示");
+  assert(dailyVisible[0].id === "p1", "切替後も配列先頭から出す");
+  assert(shouldShowLoadMore(resetVisible, dailyOnly.length) === false, "切替後に残りがなければボタンなし");
+  const allAgain = sliceVisiblePosts(daily, resetVisible);
+  assert(allAgain.length === 12, "すべてへ戻しても先頭12件から");
+  assert(allAgain[0].id === "p1" && allAgain[11].id === "p12", "戻したあとも新しい順の先頭12件");
+
+  const mixed = selectClassifiedPosts(
+    [...thirteen, { id: secondId }],
+    parseClassifications({
+      categories: [{ id: "c1", name: "日常" }],
+      assignments: Object.fromEntries(thirteen.map((post) => [post.id, "c1"])),
+    }),
+  );
+  assert(mixed.every((post) => String(post.id) !== secondId), "ページング対象に未分類は混入しない");
+  assert(sliceVisiblePosts(mixed, 24).every((post) => String(post.id) !== secondId), "もっと見る後も未分類は混入しない");
+
+  const beyondListed = resolveDirectPost("p13", thirteenFirst, thirteen);
+  assert(beyondListed.listedIndex === -1, "未表示の分類済みは listedIndex にしない");
+  assert(String(beyondListed.directPost && beyondListed.directPost.id) === "p13", "?post= は未表示でもモーダル用に返す");
+
   const galleryJs = fs.readFileSync(path.join(REPO_ROOT, "js", "instagram-gallery.js"), "utf8");
   const instagramHtml = fs.readFileSync(path.join(REPO_ROOT, "instagram.html"), "utf8");
   const indexHtml = fs.readFileSync(path.join(REPO_ROOT, "index.html"), "utf8");
@@ -146,13 +229,22 @@ function main() {
   );
   assert(!indexHtml.includes("instagram-classifications.js"), "ホームは分類JSを読み込まない");
   assert(indexHtml.includes('data-instagram-limit="3"'), "ホームの件数は3のまま");
-  assert(instagramHtml.includes('data-instagram-limit="9"'), "Instagramページの件数は9のまま");
+  assert(!indexHtml.includes("instagram-load-more"), "ホームにサイト内もっと見るを置かない");
+  assert(instagramHtml.includes('data-instagram-limit="12"'), "Instagramページの初期表示は12件");
+  assert(instagramHtml.includes("instagram-load-more"), "Instagramページにサイト内もっと見るがある");
+  assert(instagramHtml.includes("Instagram アカウントを見る"), "既存のアカウントCTAは残す");
   assert(instagramHtml.includes("instagram-classifications.js"), "Instagramページだけ分類ヘルパーを読む");
   assert(instagramHtml.includes("instagram-categories"), "Instagramページにカテゴリーナビがある");
   assert(!indexHtml.includes("instagram-categories"), "ホームにカテゴリーナビを置かない");
   assert(galleryJs.includes("ALL_CATEGORY_FILTER"), "すべて は公開側で先頭に足す");
   assert(galleryJs.includes("applyCategoryFilter"), "同じページ内で絞り込む");
+  assert(galleryJs.includes("visibleCount = ARCHIVE_PAGE_SIZE"), "カテゴリー切替で12件へ戻す");
+  assert(galleryJs.includes("renderVisiblePosts"), "表示中の件数だけ描画する");
   assert(galleryJs.includes('img.loading = "lazy"'), "lazy loading を維持する");
+  assert(
+    galleryJs.includes("if (isHomeGallery)") && galleryJs.includes("validPosts.slice(0, displayLimit)"),
+    "ホームは従来どおり displayLimit 件だけ出す",
+  );
 
   console.log(`Instagram classification tests: ${passed} passed, ${failed} failed`);
   if (failed > 0) {

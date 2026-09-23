@@ -143,13 +143,57 @@
     return { listedIndex: -1, directPost };
   }
 
+  const ARCHIVE_PAGE_SIZE = 12;
+
+  /**
+   * 分類済み配列は全件保持し、描画は先頭 visibleCount 件だけ。
+   * @param {unknown[]} posts
+   * @param {number} visibleCount
+   * @returns {unknown[]}
+   */
+  function sliceVisiblePosts(posts, visibleCount) {
+    if (!Array.isArray(posts)) {
+      return [];
+    }
+
+    const count = Number.isFinite(visibleCount) && visibleCount > 0 ? Math.floor(visibleCount) : 0;
+    return posts.slice(0, count);
+  }
+
+  /**
+   * @param {number} visibleCount
+   * @param {number} [pageSize]
+   * @returns {number}
+   */
+  function nextVisibleCount(visibleCount, pageSize) {
+    const current = Number.isFinite(visibleCount) && visibleCount > 0 ? Math.floor(visibleCount) : 0;
+    const size = Number.isFinite(pageSize) && pageSize > 0 ? Math.floor(pageSize) : ARCHIVE_PAGE_SIZE;
+    return current + size;
+  }
+
+  /**
+   * 残りがある場合だけ「もっと見る」を出す。
+   * @param {number} visibleCount
+   * @param {number} totalCount
+   * @returns {boolean}
+   */
+  function shouldShowLoadMore(visibleCount, totalCount) {
+    const visible = Number.isFinite(visibleCount) ? visibleCount : 0;
+    const total = Number.isFinite(totalCount) ? totalCount : 0;
+    return total > 0 && total > visible;
+  }
+
   const api = {
+    ARCHIVE_PAGE_SIZE,
     parseClassifications,
     isClassifiedPost,
     selectClassifiedPosts,
     visibleCategories,
     selectPostsForCategory,
     resolveDirectPost,
+    sliceVisiblePosts,
+    nextVisibleCount,
+    shouldShowLoadMore,
   };
 
   root.InstagramClassifications = api;

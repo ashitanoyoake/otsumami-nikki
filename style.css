@@ -690,6 +690,36 @@ a.home-works-item:hover {
   letter-spacing: 0.04em;
 }
 
+.instagram-load-more-wrap {
+  margin: 1.8rem 0 0;
+  text-align: center;
+}
+
+.instagram-load-more-wrap[hidden] {
+  display: none;
+}
+
+.instagram-load-more {
+  appearance: none;
+  display: inline-block;
+  padding: 0.55rem 1.8rem;
+  border: 1px solid var(--accent);
+  border-radius: 2rem;
+  background: transparent;
+  color: var(--accent);
+  font-family: inherit;
+  font-size: 0.85rem;
+  letter-spacing: 0.08em;
+  cursor: pointer;
+}
+
+.instagram-load-more:hover,
+.instagram-load-more:focus-visible {
+  background-color: var(--accent);
+  color: #fff;
+  outline: none;
+}
+
 .instagram-gallery-item {
   position: relative;
   display: block;
@@ -1822,6 +1852,11 @@ button.blog-category-link {
 
   .page-main > .section-link {
     display: none;
+  }
+
+  .instagram-load-more {
+    padding: 0.5rem 1.5rem;
+    font-size: 0.82rem;
   }
 
   .instagram-new-badge {

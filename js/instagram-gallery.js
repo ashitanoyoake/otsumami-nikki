@@ -1,6 +1,6 @@
 /**
  * Instagram ギャラリー表示・モーダル
- * data/instagram.json を読み、instagram.html（最大9件）とホーム（最大3件）で共用する。
+ * data/instagram.json を読み、instagram.html（初期12件＋もっと見る）とホーム（最大3件）で共用する。
  * ホームは分類JSONを使わず最新N件。Instagramページは分類済み投稿だけを一覧表示する。
  * 左右操作は投稿間ではなく、1投稿内の画像送りに使う。
  */
@@ -13,6 +13,7 @@
   const modalEl = document.querySelector(".instagram-modal");
   const parsedLimit = Number.parseInt(galleryRoot.getAttribute("data-instagram-limit") || "9", 10);
   const displayLimit = Number.isFinite(parsedLimit) && parsedLimit > 0 ? parsedLimit : 9;
+  const ARCHIVE_PAGE_SIZE = (window.InstagramClassifications && window.InstagramClassifications.ARCHIVE_PAGE_SIZE) || 12;
   const isHomeGallery = Boolean(galleryRoot.closest(".home-instagram"));
   const NEW_BADGE_SRC = new URL("images/ui/new-badge.png", window.location.href).href;
 
@@ -67,6 +68,8 @@
   /** @type {InstagramPost[]} */
   let classifiedPosts = [];
   /** @type {InstagramPost[]} */
+  let filteredPosts = [];
+  /** @type {InstagramPost[]} */
   let listedPosts = [];
   /** @type {InstagramPost[]} */
   let posts = [];
@@ -75,6 +78,7 @@
   /** @type {{ categories: Array<{ id: string, name: string }>, assignments: Record<string, string> } | null} */
   let classificationsData = null;
   let currentCategoryFilter = ALL_CATEGORY_FILTER;
+  let visibleCount = ARCHIVE_PAGE_SIZE;
   let currentIndex = 0;
   let currentSlide = 0;
   /** @type {HTMLElement | null} */
@@ -145,6 +149,26 @@
     return getPostSlides(post).length > 1 || post.media_type === "CAROUSEL_ALBUM";
   }
 
+  function hideLoadMore() {
+    const wrapEl = galleryRoot.querySelector(".instagram-load-more-wrap");
+    if (wrapEl instanceof HTMLElement) {
+      wrapEl.hidden = true;
+    }
+  }
+
+  function updateLoadMore() {
+    const wrapEl = galleryRoot.querySelector(".instagram-load-more-wrap");
+    if (!(wrapEl instanceof HTMLElement) || isHomeGallery) {
+      return;
+    }
+
+    const Classifications = window.InstagramClassifications;
+    const show = Classifications
+      ? Classifications.shouldShowLoadMore(visibleCount, filteredPosts.length)
+      : filteredPosts.length > visibleCount;
+    wrapEl.hidden = !show;
+  }
+
   /**
    * @param {string} text
    */
@@ -153,6 +177,7 @@
     gridEl.setAttribute("hidden", "");
     messageEl.textContent = text || EMPTY_MESSAGE;
     messageEl.removeAttribute("hidden");
+    hideLoadMore();
   }
 
   function showGallery() {
@@ -213,10 +238,18 @@
 
   function applyCategoryFilter() {
     const Classifications = window.InstagramClassifications;
-    const filtered = Classifications
+    filteredPosts = Classifications
       ? Classifications.selectPostsForCategory(classifiedPosts, classificationsData, currentCategoryFilter)
       : [];
-    listedPosts = filtered.slice(0, displayLimit);
+    visibleCount = ARCHIVE_PAGE_SIZE;
+    renderVisiblePosts();
+  }
+
+  function renderVisiblePosts() {
+    const Classifications = window.InstagramClassifications;
+    listedPosts = Classifications
+      ? Classifications.sliceVisiblePosts(filteredPosts, visibleCount)
+      : filteredPosts.slice(0, visibleCount);
     posts = listedPosts;
 
     if (listedPosts.length === 0) {
@@ -225,6 +258,7 @@
     }
 
     renderGallery(listedPosts);
+    updateLoadMore();
   }
 
   /**
@@ -610,6 +644,17 @@
         applyCategoryFilter();
       });
     }
+
+    const loadMoreBtn = galleryRoot.querySelector(".instagram-load-more");
+    if (loadMoreBtn instanceof HTMLButtonElement) {
+      loadMoreBtn.addEventListener("click", () => {
+        const Classifications = window.InstagramClassifications;
+        visibleCount = Classifications
+          ? Classifications.nextVisibleCount(visibleCount, ARCHIVE_PAGE_SIZE)
+          : visibleCount + ARCHIVE_PAGE_SIZE;
+        renderVisiblePosts();
+      });
+    }
   }
 
   /**
@@ -667,9 +712,11 @@
       const classifications = await loadClassifications();
       if (!classifications) {
         classifiedPosts = [];
+        filteredPosts = [];
         listedPosts = [];
         posts = [];
         classificationsData = null;
+        visibleCount = ARCHIVE_PAGE_SIZE;
         hideCategoryNav();
         showMessage(EMPTY_MESSAGE);
         openPostFromQuery();
@@ -686,8 +733,10 @@
       applyCategoryFilter();
       openPostFromQuery();
     } catch {
+      filteredPosts = [];
       listedPosts = [];
       posts = [];
+      visibleCount = ARCHIVE_PAGE_SIZE;
       showMessage(EMPTY_MESSAGE);
     }
   }

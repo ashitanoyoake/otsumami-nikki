@@ -292,7 +292,7 @@ async function main() {
   const instagramHtml = fs.readFileSync(path.join(REPO_ROOT, "instagram.html"), "utf8");
   const indexHtml = fs.readFileSync(path.join(REPO_ROOT, "index.html"), "utf8");
   const galleryJs = fs.readFileSync(path.join(REPO_ROOT, "js", "instagram-gallery.js"), "utf8");
-  assert(instagramHtml.includes('data-instagram-limit="9"'), "instagram.html の表示件数は9のまま");
+  assert(instagramHtml.includes('data-instagram-limit="12"'), "instagram.html の初期表示は12件");
   assert(indexHtml.includes('data-instagram-limit="3"'), "index.html の表示件数は3のまま");
   assert(galleryJs.includes("images/ui/new-badge.png"), "NEWバッジ画像参照は維持");
   assert(galleryJs.includes("instagram-cta-card"), "SPのCTAカード処理は維持");
