@@ -42,7 +42,8 @@
    */
 
   /**
-   * ローカル保存画像があればそれを使い、未移行の既存投稿は CDN URL にフォールバックする。
+   * 保存済みURL（リポジトリ相対パスまたは R2 カスタムドメイン）があればそれを使い、
+   * 未移行の既存投稿は CDN URL にフォールバックする。
    * @param {{ media_type?: string, media_url?: string, thumbnail_url?: string | null, local_media_path?: string | null } | null | undefined} item
    * @returns {string}
    */

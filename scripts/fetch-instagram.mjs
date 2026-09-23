@@ -1,10 +1,11 @@
 /**
  * Instagram API with Instagram Login から最新投稿を取得し、既存アーカイブへ Media ID 単位で蓄積する。
- * 新規画像は images/instagram/posts/ に保存し、公開サイトはローカルパスを参照できるようにする。
+ * 新規画像は Cloudflare R2（otsumami-instagram）へ保存し、
+ * 公開サイトは https://instagram-media.otsumaminikki.com を参照する。
  *
  * - API の取得件数は最新9件のまま（ページネーション／バックフィルはしない）
  * - 既存投稿は最新9件から外れても削除しない
- * - 既存ローカル画像は Media ID 単位で再ダウンロードしない
+ * - 既存の R2 オブジェクト／移行元ローカル画像は Media ID 単位で再取得しない
  * - 取得失敗時は既存 JSON / 保存済み画像を壊さない
  *
  * ホストは graph.instagram.com（Instagram User access token 用）。
@@ -12,6 +13,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { createR2MediaStore, isR2PublicUrl, readR2ConfigFromEnv } from "./r2.mjs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = path.join(__dirname, "..");
@@ -114,6 +116,14 @@ export function isLocalMediaPath(value) {
 }
 
 /**
+ * @param {unknown} value
+ * @returns {boolean}
+ */
+export function isStoredMediaUrl(value) {
+  return isLocalMediaPath(value) || isR2PublicUrl(value);
+}
+
+/**
  * @param {string | null | undefined} contentType
  * @returns {string | null}
  */
@@ -184,16 +194,16 @@ export function findExistingMediaFile(mediaId, mediaDir = MEDIA_DIR) {
  */
 function getItemRemoteUrl(item) {
   if (item.media_type === "VIDEO") {
-    if (isHttpUrl(item.thumbnail_url)) {
+    if (isHttpUrl(item.thumbnail_url) && !isR2PublicUrl(item.thumbnail_url)) {
       return item.thumbnail_url;
     }
     return null;
   }
 
-  if (isHttpUrl(item.media_url)) {
+  if (isHttpUrl(item.media_url) && !isR2PublicUrl(item.media_url) && !isLocalMediaPath(item.media_url)) {
     return item.media_url;
   }
-  if (isHttpUrl(item.thumbnail_url)) {
+  if (isHttpUrl(item.thumbnail_url) && !isR2PublicUrl(item.thumbnail_url)) {
     return item.thumbnail_url;
   }
   return null;
@@ -235,9 +245,9 @@ export function normalizeChildren(item) {
     const localPath =
       typeof child.local_media_path === "string" && child.local_media_path
         ? child.local_media_path
-        : isLocalMediaPath(child.media_url)
+        : isStoredMediaUrl(child.media_url)
           ? child.media_url
-          : isLocalMediaPath(child.thumbnail_url)
+          : isStoredMediaUrl(child.thumbnail_url)
             ? child.thumbnail_url
             : null;
 
@@ -306,7 +316,7 @@ export function normalizePost(item) {
   const localPath =
     typeof item.local_media_path === "string" && item.local_media_path
       ? item.local_media_path
-      : isLocalMediaPath(mediaUrl)
+      : isStoredMediaUrl(mediaUrl)
         ? mediaUrl
         : null;
 
@@ -621,34 +631,34 @@ function resolveExtension(buffer, contentType) {
   throw new Error("unsupported image type");
 }
 
+const MIME_BY_EXTENSION = {
+  jpg: "image/jpeg",
+  jpeg: "image/jpeg",
+  png: "image/png",
+  webp: "image/webp",
+  gif: "image/gif",
+  avif: "image/avif",
+};
+
+/**
+ * @param {string} extension
+ * @returns {string}
+ */
+function mimeFromExtension(extension) {
+  return MIME_BY_EXTENSION[extension] || "application/octet-stream";
+}
+
 /**
  * @param {string} url
- * @param {string} mediaId
- * @param {{
- *   mediaDir?: string,
- *   fetchImpl?: typeof fetch,
- * }} [options]
- * @returns {Promise<{ path: string | null, skipped: boolean, downloaded: boolean, failed: boolean }>}
+ * @param {{ fetchImpl?: typeof fetch }} [options]
+ * @returns {Promise<{ buffer: Buffer, contentType: string | null, extension: string } | null>}
  */
-export async function downloadMediaFile(url, mediaId, options = {}) {
-  const mediaDir = options.mediaDir || MEDIA_DIR;
+export async function fetchImageBytes(url, options = {}) {
   const fetchImpl = options.fetchImpl || fetch;
 
-  if (!isSafeMediaId(mediaId)) {
-    return { path: null, skipped: false, downloaded: false, failed: true };
-  }
-
-  const existing = findExistingMediaFile(mediaId, mediaDir);
-  if (existing) {
-    return { path: existing, skipped: true, downloaded: false, failed: false };
-  }
-
   if (!isHttpUrl(url)) {
-    return { path: null, skipped: false, downloaded: false, failed: true };
+    return null;
   }
-
-  fs.mkdirSync(mediaDir, { recursive: true });
-  const tmpPath = path.join(mediaDir, `${mediaId}.tmp`);
 
   try {
     const response = await fetchImpl(url, {
@@ -671,18 +681,60 @@ export async function downloadMediaFile(url, mediaId, options = {}) {
 
     const buffer = Buffer.from(arrayBuffer);
     const extension = resolveExtension(buffer, contentType);
-    const publicPath = `${MEDIA_PUBLIC_PREFIX}/${mediaId}.${extension}`;
-    const finalPath = path.join(mediaDir, `${mediaId}.${extension}`);
-
-    fs.writeFileSync(tmpPath, buffer);
-    fs.renameSync(tmpPath, finalPath);
-
-    return { path: publicPath, skipped: false, downloaded: true, failed: false };
+    return { buffer, contentType, extension };
   } catch {
-    if (fs.existsSync(tmpPath)) {
-      fs.unlinkSync(tmpPath);
+    return null;
+  }
+}
+
+/**
+ * @param {string} mediaId
+ * @param {{
+ *   store: { has: Function, put: Function },
+ *   fetchImpl?: typeof fetch,
+ *   mediaDir?: string,
+ *   sourceUrl?: string | null,
+ * }} options
+ */
+async function persistMedia(mediaId, options) {
+  const existingRemote = await options.store.has(mediaId);
+  if (existingRemote) {
+    return { url: existingRemote, skipped: true, uploaded: false, failed: false };
+  }
+
+  const mediaDir = options.mediaDir || MEDIA_DIR;
+  const localRel = findExistingMediaFile(mediaId, mediaDir);
+  if (localRel) {
+    const localAbs = path.join(mediaDir, path.basename(localRel));
+    const extension = path.extname(localRel).slice(1).toLowerCase();
+    const buffer = fs.readFileSync(localAbs);
+    try {
+      const url = await options.store.put(mediaId, buffer, mimeFromExtension(extension), extension);
+      return { url, skipped: false, uploaded: true, failed: false };
+    } catch {
+      return { url: null, skipped: false, uploaded: false, failed: true };
     }
-    return { path: null, skipped: false, downloaded: false, failed: true };
+  }
+
+  if (!options.sourceUrl) {
+    return { url: null, skipped: false, uploaded: false, failed: true };
+  }
+
+  const fetched = await fetchImageBytes(options.sourceUrl, { fetchImpl: options.fetchImpl });
+  if (!fetched) {
+    return { url: null, skipped: false, uploaded: false, failed: true };
+  }
+
+  try {
+    const url = await options.store.put(
+      mediaId,
+      fetched.buffer,
+      fetched.contentType || mimeFromExtension(fetched.extension),
+      fetched.extension,
+    );
+    return { url, skipped: false, uploaded: true, failed: false };
+  } catch {
+    return { url: null, skipped: false, uploaded: false, failed: true };
   }
 }
 
@@ -705,16 +757,53 @@ function getDownloadTarget(item) {
 /**
  * @param {Record<string, unknown>[]} posts
  * @param {{
+ *   store: { has: Function, put: Function },
  *   mediaDir?: string,
  *   fetchImpl?: typeof fetch,
- * }} [options]
+ * }} options
  */
-export async function savePostsMedia(posts, options = {}) {
+export async function savePostsMedia(posts, options) {
+  if (!options || !options.store) {
+    throw new Error("media store is required");
+  }
+
   const stats = {
     downloaded: 0,
     skipped: 0,
     failed: 0,
   };
+
+  /**
+   * @param {Record<string, unknown>} item
+   */
+  async function persistItem(item) {
+    const id = item.id != null ? String(item.id) : "";
+    if (!isSafeMediaId(id)) {
+      return;
+    }
+
+    const target = getDownloadTarget(item);
+    const result = await persistMedia(id, {
+      store: options.store,
+      fetchImpl: options.fetchImpl,
+      mediaDir: options.mediaDir,
+      sourceUrl: target ? target.url : null,
+    });
+
+    if (result.url) {
+      applyLocalPath(item, result.url);
+    } else {
+      clearLocalPath(item);
+    }
+
+    if (result.uploaded) {
+      stats.downloaded += 1;
+    } else if (result.skipped) {
+      stats.skipped += 1;
+    } else if (result.failed) {
+      stats.failed += 1;
+    }
+  }
 
   for (const post of posts) {
     if (!post || typeof post !== "object") {
@@ -727,28 +816,7 @@ export async function savePostsMedia(posts, options = {}) {
         if (!child || typeof child !== "object") {
           continue;
         }
-        const existing = child.id != null ? findExistingMediaFile(String(child.id), options.mediaDir) : null;
-        if (existing) {
-          applyLocalPath(child, existing);
-          stats.skipped += 1;
-          continue;
-        }
-        clearLocalPath(child);
-        const target = getDownloadTarget(child);
-        if (!target) {
-          continue;
-        }
-        const result = await downloadMediaFile(target.url, target.id, options);
-        if (result.path) {
-          applyLocalPath(child, result.path);
-        }
-        if (result.downloaded) {
-          stats.downloaded += 1;
-        } else if (result.skipped) {
-          stats.skipped += 1;
-        } else if (result.failed) {
-          stats.failed += 1;
-        }
+        await persistItem(child);
       }
 
       const firstLocal =
@@ -762,29 +830,7 @@ export async function savePostsMedia(posts, options = {}) {
       continue;
     }
 
-    const existing = post.id != null ? findExistingMediaFile(String(post.id), options.mediaDir) : null;
-    if (existing) {
-      applyLocalPath(post, existing);
-      stats.skipped += 1;
-      continue;
-    }
-
-    clearLocalPath(post);
-    const target = getDownloadTarget(post);
-    if (!target) {
-      continue;
-    }
-    const result = await downloadMediaFile(target.url, target.id, options);
-    if (result.path) {
-      applyLocalPath(post, result.path);
-    }
-    if (result.downloaded) {
-      stats.downloaded += 1;
-    } else if (result.skipped) {
-      stats.skipped += 1;
-    } else if (result.failed) {
-      stats.failed += 1;
-    }
+    await persistItem(post);
   }
 
   return stats;
@@ -877,12 +923,16 @@ async function main() {
   }
 
   try {
+    const r2Config = readR2ConfigFromEnv();
     cleanupTmpFiles();
     const incoming = await fetchInstagramPosts(accessToken, userId);
     const existing = readExistingArchive(OUTPUT_PATH);
     const merged = mergeArchives(existing.posts, incoming);
-    fs.mkdirSync(MEDIA_DIR, { recursive: true });
-    const mediaStats = await savePostsMedia(merged.posts);
+    const store = createR2MediaStore(r2Config);
+    const mediaStats = await savePostsMedia(merged.posts, {
+      store,
+      mediaDir: MEDIA_DIR,
+    });
     const wroteJson = writeArchiveIfChanged(OUTPUT_PATH, existing, merged.posts);
 
     console.log(

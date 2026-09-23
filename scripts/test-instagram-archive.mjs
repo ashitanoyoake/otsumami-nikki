@@ -7,7 +7,6 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import {
   dedupePostsById,
-  downloadMediaFile,
   extensionFromContentType,
   extensionFromMagic,
   findExistingMediaFile,
@@ -20,6 +19,7 @@ import {
   sortPostsByTimestampDesc,
   writeArchiveIfChanged,
 } from "./fetch-instagram.mjs";
+import { createMemoryMediaStore, R2_PUBLIC_BASE } from "./r2.mjs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const REPO_JSON = path.join(__dirname, "..", "data", "instagram.json");
@@ -74,6 +74,23 @@ function selectPublicPosts(posts, limit) {
     .slice(0, limit);
 }
 
+function withRemoteUrls(posts) {
+  const cloned = clone(posts);
+  const strip = (item) => {
+    if (!item) return;
+    delete item.local_media_path;
+    item.media_url = `https://example.invalid/${item.id}.jpg`;
+    if (item.media_type === "VIDEO") {
+      item.thumbnail_url = `https://example.invalid/${item.id}.jpg`;
+    }
+  };
+  cloned.forEach((post) => {
+    strip(post);
+    (post.children || []).forEach(strip);
+  });
+  return cloned;
+}
+
 function createMockFetch(counter) {
   return async function mockFetch() {
     counter.calls += 1;
@@ -111,8 +128,8 @@ async function main() {
     "子 Media ID はファイル名に使える",
   );
   assert(
-    childIds.every((id) => findExistingMediaFile(id) === null),
-    "本番 images/instagram/posts にはまだ実ファイルがない（移行前）",
+    childIds.every((id) => findExistingMediaFile(id) === `${MEDIA_PUBLIC_PREFIX}/${id}.jpg`),
+    "既存36枚はリポジトリ内に Media ID 名で残っている（R2移行元）",
   );
 
   const mergedSame = mergeArchives(existingPosts, clone(existingPosts));
@@ -171,30 +188,34 @@ async function main() {
   const jsonPath = path.join(mediaDir, "instagram.json");
   const counter = { calls: 0 };
   const fetchImpl = createMockFetch(counter);
-  const samplePosts = clone(existingPosts);
+  const store = createMemoryMediaStore();
+  const samplePosts = withRemoteUrls(existingPosts);
 
-  const firstSave = await savePostsMedia(samplePosts, { mediaDir, fetchImpl });
+  const firstSave = await savePostsMedia(samplePosts, { store, mediaDir, fetchImpl });
   assert(firstSave.downloaded === childIds.length, `1回目は全${childIds.length}枚を保存する`);
   assert(firstSave.skipped === 0, "1回目はスキップしない");
   assert(firstSave.failed === 0, "モック保存は失敗しない");
 
-  const savedNames = fs.readdirSync(mediaDir).filter((name) => name.endsWith(".jpg"));
-  assert(savedNames.length === childIds.length, "保存ファイル数は Media ID 数と一致");
   assert(
-    childIds.every((id) => fs.existsSync(path.join(mediaDir, `${id}.jpg`))),
-    "ファイル名は images/instagram/posts/{Media ID}.jpg で安定",
-  );
-  assert(
-    childIds.every((id) => findExistingMediaFile(id, mediaDir) === `${MEDIA_PUBLIC_PREFIX}/${id}.jpg`),
-    "ローカル参照パスが Media ID 基準で安定している",
+    childIds.every((id) =>
+      samplePosts.some(
+        (post) =>
+          (post.children || []).some(
+            (child) =>
+              child.id === id &&
+              child.local_media_path === `${R2_PUBLIC_BASE}/posts/${id}.jpg`,
+          ) || post.local_media_path === `${R2_PUBLIC_BASE}/posts/${id}.jpg`,
+      ),
+    ),
+    "保存後は R2 カスタムドメインを参照する",
   );
   assert(
     samplePosts.every(
       (post) =>
         typeof post.local_media_path === "string" &&
-        post.local_media_path.startsWith(`${MEDIA_PUBLIC_PREFIX}/`),
+        post.local_media_path.startsWith(`${R2_PUBLIC_BASE}/posts/`),
     ),
-    "各投稿に local_media_path が入る",
+    "各投稿に R2 公開URLが入る",
   );
   assert(
     samplePosts.every(
@@ -204,30 +225,42 @@ async function main() {
           (child) =>
             !child ||
             (typeof child.local_media_path === "string" &&
-              child.local_media_path === `${MEDIA_PUBLIC_PREFIX}/${child.id}.jpg`),
+              child.local_media_path === `${R2_PUBLIC_BASE}/posts/${child.id}.jpg`),
         ),
     ),
-    "カルーセル children もローカル画像を参照する",
+    "カルーセル children も R2 画像を参照する",
   );
+  assert(fs.readdirSync(mediaDir).filter((name) => name.endsWith(".jpg")).length === 0, "リポジトリ用ディレクトリへは新規保存しない");
 
-  const secondSave = await savePostsMedia(samplePosts, { mediaDir, fetchImpl });
+  const secondSave = await savePostsMedia(samplePosts, { store, mediaDir, fetchImpl });
   assert(secondSave.downloaded === 0, "2回目は再ダウンロードしない");
   assert(secondSave.skipped === childIds.length, "2回目は既存 Media ID をスキップする");
   assert(counter.calls === childIds.length, "CDN相当の取得は1回目の枚数だけで止まる");
 
-  const sentinel = "do-not-overwrite";
   const sentinelId = childIds[0];
-  fs.writeFileSync(path.join(mediaDir, `${sentinelId}.jpg`), sentinel);
-  await downloadMediaFile("https://example.invalid/changed.jpg?query=1", sentinelId, {
-    mediaDir,
-    fetchImpl,
-  });
-  assert(
-    fs.readFileSync(path.join(mediaDir, `${sentinelId}.jpg`), "utf8") === sentinel,
-    "クエリ違いのCDN URLでも既存 Media ID は上書きしない",
+  const beforeSentinel = await store.has(sentinelId);
+  await savePostsMedia(
+    [
+      {
+        id: "sentinel-post",
+        media_type: "IMAGE",
+        media_url: "https://example.invalid/changed.jpg?query=1",
+        permalink: "https://www.instagram.com/p/x/",
+        timestamp: "2026-01-01T00:00:00+0000",
+        children: [
+          {
+            id: sentinelId,
+            media_type: "IMAGE",
+            media_url: "https://example.invalid/changed.jpg?query=1",
+          },
+        ],
+      },
+    ],
+    { store, mediaDir, fetchImpl },
   );
+  assert((await store.has(sentinelId)) === beforeSentinel, "クエリ違いのCDN URLでも既存 Media ID は上書きしない");
 
-  const videoDir = makeTempDir("video");
+  const videoStore = createMemoryMediaStore();
   const videoCounter = { calls: 0 };
   const videoPost = [
     {
@@ -241,28 +274,63 @@ async function main() {
     },
   ];
   const videoStats = await savePostsMedia(videoPost, {
-    mediaDir: videoDir,
+    store: videoStore,
+    mediaDir,
     fetchImpl: createMockFetch(videoCounter),
   });
   assert(videoStats.downloaded === 1, "VIDEO はサムネイルだけ保存する");
   assert(videoCounter.calls === 1, "VIDEO 本体 URL では fetch しない");
   assert(
-    fs.existsSync(path.join(videoDir, "88800000000000001.jpg")),
-    "VIDEO サムネイルは投稿 Media ID で保存する",
+    videoPost[0].local_media_path === `${R2_PUBLIC_BASE}/posts/88800000000000001.jpg`,
+    "VIDEO サムネイルは投稿 Media ID で R2 保存する",
   );
-  assert(!fs.existsSync(path.join(videoDir, "88800000000000001.mp4")), "動画本体は保存しない");
+  assert(![...videoStore.objects.keys()].some((key) => key.endsWith(".mp4")), "動画本体は保存しない");
 
-  const failedDir = makeTempDir("fail");
-  const beforeFail = clone(existingPosts);
+  const failStore = createMemoryMediaStore();
+  const beforeFail = withRemoteUrls(existingPosts);
   const failStats = await savePostsMedia(beforeFail, {
-    mediaDir: failedDir,
+    store: failStore,
+    mediaDir,
     fetchImpl: async () => new Response("nope", { status: 500 }),
   });
   assert(failStats.failed === childIds.length, "保存失敗を記録する");
-  assert(fs.readdirSync(failedDir).filter((name) => name.endsWith(".tmp")).length === 0, "失敗時に tmp を残さない");
+  assert(failStore.objects.size === 0, "失敗時に不完全オブジェクトを残さない");
   assert(
-    beforeFail.every((post) => !post.local_media_path && String(post.media_url).startsWith("https://")),
-    "保存失敗しても既存CDN参照を壊さない",
+    beforeFail.every((post) => !post.local_media_path),
+    "保存失敗しても既存参照を壊してR2パスを書かない",
+  );
+
+  const migrateDir = makeTempDir("migrate");
+  const migrateId = childIds[0];
+  fs.writeFileSync(path.join(migrateDir, `${migrateId}.jpg`), MINIMAL_JPEG);
+  const migrateStore = createMemoryMediaStore();
+  const migrateCounter = { calls: 0 };
+  const migratePosts = [
+    {
+      id: "migrate-post",
+      media_type: "IMAGE",
+      media_url: `${MEDIA_PUBLIC_PREFIX}/${migrateId}.jpg`,
+      permalink: "https://www.instagram.com/p/y/",
+      timestamp: "2026-01-01T00:00:00+0000",
+      children: [
+        {
+          id: migrateId,
+          media_type: "IMAGE",
+          media_url: `${MEDIA_PUBLIC_PREFIX}/${migrateId}.jpg`,
+        },
+      ],
+    },
+  ];
+  const migrateStats = await savePostsMedia(migratePosts, {
+    store: migrateStore,
+    mediaDir: migrateDir,
+    fetchImpl: createMockFetch(migrateCounter),
+  });
+  assert(migrateStats.downloaded === 1, "既存ローカル画像はR2へ移行する");
+  assert(migrateCounter.calls === 0, "ローカルにファイルがあればCDNを再取得しない");
+  assert(
+    migratePosts[0].local_media_path === `${R2_PUBLIC_BASE}/posts/${migrateId}.jpg`,
+    "移行後はR2カスタムドメインを参照する",
   );
 
   fs.writeFileSync(
