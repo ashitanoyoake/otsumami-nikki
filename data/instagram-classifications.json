@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "updatedAt": "2026-09-23T05:52:49.560Z",
+  "updatedAt": "2026-09-23T05:53:09.327Z",
   "categories": [
     {
       "id": "c2",
@@ -25,6 +25,10 @@
     {
       "id": "c6",
       "name": "漫画"
+    },
+    {
+      "id": "c7",
+      "name": "PR"
     }
   ],
   "assignments": {}
