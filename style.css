@@ -150,18 +150,18 @@ nav a.nav-current {
    ======================================== */
 
 main {
-  padding-bottom: 5rem;
+  padding-bottom: 4.5rem;
 }
 
 .page-main.home-page {
-  padding-top: 2rem;
+  padding-top: 1.5rem;
 }
 
 .content-inner {
   max-width: var(--content-max);
   margin-left: auto;
   margin-right: auto;
-  padding: 0 2rem;
+  padding: 0 2rem 4.5rem;
   box-sizing: border-box;
   width: 100%;
 }
@@ -301,7 +301,7 @@ main {
    ======================================== */
 
 .home-mv {
-  margin-bottom: 2.5rem;
+  margin-bottom: 2.25rem;
 }
 
 .home-mv-figure {
@@ -1624,6 +1624,10 @@ button.blog-category-link {
   margin: 0 0 1.8rem;
 }
 
+.contact-form p:last-child {
+  margin-bottom: 0;
+}
+
 .contact-form label {
   display: block;
   margin-bottom: 0.4rem;
@@ -1675,6 +1679,11 @@ button.blog-category-link {
    ======================================== */
 
 @media (max-width: 768px) {
+
+  main,
+  .content-inner {
+    padding-bottom: 3.25rem;
+  }
 
   /* --- ヘッダー・ナビ --- */
   .site-header {
@@ -1756,6 +1765,8 @@ button.blog-category-link {
     order: 3;
     max-width: var(--layout-max);
     margin: 0 auto;
+    padding-top: 0.25rem;
+    padding-bottom: 0.25rem;
   }
 
   /* display:contents により main の .content-inner が効かないため再適用 */
@@ -1771,12 +1782,16 @@ button.blog-category-link {
     box-sizing: border-box;
   }
 
+  body.home-page-body .home-sections {
+    padding-bottom: 3.25rem;
+  }
+
   body.home-page-body > .site-footer {
     order: 5;
   }
 
   body.home-page-body .home-profile-detail {
-    padding-top: 1.5rem;
+    padding-top: 2rem;
   }
 
   /* --- ホーム：余白調整 --- */
