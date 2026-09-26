@@ -112,9 +112,9 @@
   function formatDateForAlt(timestamp) {
     const date = new Date(timestamp);
     if (Number.isNaN(date.getTime())) {
-      return "Instagram投稿";
+      return "インスタグラム投稿";
     }
-    return `Instagram投稿（${date.getFullYear()}年${date.getMonth() + 1}月${date.getDate()}日）`;
+    return `インスタグラム投稿（${date.getFullYear()}年${date.getMonth() + 1}月${date.getDate()}日）`;
   }
 
   /**
