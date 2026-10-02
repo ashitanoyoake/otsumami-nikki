@@ -178,23 +178,17 @@
 
   /**
    * @param {NonNullable<ReturnType<typeof window.CmsLists.parsePostsIndex>>} posts
+   * @param {string[] | null} canonicalNames
    * @returns {string[]}
    */
-  function uniqueCategories(posts) {
-    const seen = new Set();
-    /** @type {string[]} */
-    const categories = [];
+  function visibleCategories(posts, canonicalNames) {
+    const usedNames = posts.map((post) => post.category);
 
-    posts.forEach((post) => {
-      if (!post.category || seen.has(post.category)) {
-        return;
-      }
+    if (window.BlogCategories) {
+      return window.BlogCategories.resolveVisibleBlogCategories(canonicalNames, usedNames);
+    }
 
-      seen.add(post.category);
-      categories.push(post.category);
-    });
-
-    return categories;
+    return usedNames.filter((name, index) => name && usedNames.indexOf(name) === index);
   }
 
   async function initPage() {
@@ -212,7 +206,12 @@
 
     showMessage(messageEl, listEl, LOADING_MESSAGE);
 
-    const fetched = await window.CmsLists.fetchPostsIndex("blog-list");
+    const [fetched, canonicalNames] = await Promise.all([
+      window.CmsLists.fetchPostsIndex("blog-list"),
+      window.BlogCategories
+        ? window.BlogCategories.loadCanonicalCategoryNames(fetch, window.location.href)
+        : Promise.resolve(null),
+    ]);
 
     if (!fetched.ok) {
       showMessage(messageEl, listEl, EMPTY_MESSAGE);
@@ -240,7 +239,7 @@
     showList(messageEl, listEl);
 
     if (categoryListEl instanceof HTMLElement) {
-      renderCategoryNav(categoryListEl, listEl, uniqueCategories(posts));
+      renderCategoryNav(categoryListEl, listEl, visibleCategories(posts, canonicalNames));
     }
   }
 
