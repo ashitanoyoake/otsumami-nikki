@@ -1,12 +1,10 @@
 {
   "siteId": "otsumami-nikki",
   "managedPaths": [
-    "blog/【テスト】ブログ公開・カテゴリー動作確認.html",
-    "data/posts/2026-10-03-【テスト】ブログ公開・カテゴリー動作確認.md",
     "data/posts/posts-index.json",
     "data/works/works-canonical.json",
     "data/works/works-index.json",
     "sitemap.xml"
   ],
-  "updatedAt": "2026-10-04T01:28:24.569Z"
+  "updatedAt": "2026-10-04T01:29:36.783Z"
 }
