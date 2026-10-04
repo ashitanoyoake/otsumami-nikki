@@ -12,7 +12,10 @@
 
   const EMPTY_MESSAGE = "現在公開中のイラストはありません。";
   const LOADING_MESSAGE = "読み込み中...";
-  const ALL_FILTER = "all";
+  const ALL_FILTER =
+    window.WorksCategories && window.WorksCategories.ALL_WORKS_FILTER
+      ? window.WorksCategories.ALL_WORKS_FILTER
+      : "all";
 
   /**
    * @param {HTMLElement} messageEl
@@ -133,23 +136,83 @@
 
   /**
    * @param {NonNullable<ReturnType<typeof window.CmsLists.parseWorksIndex>>} works
+   * @param {string[] | null} canonicalNames
    * @returns {string[]}
    */
-  function uniqueCategories(works) {
+  function visibleCategories(works, canonicalNames) {
+    const usedNames = works.map((work) => work.category);
+
+    if (window.WorksCategories) {
+      return window.WorksCategories.resolveVisibleWorksCategories(canonicalNames, usedNames);
+    }
+
     const seen = new Set();
     /** @type {string[]} */
     const categories = [];
 
-    works.forEach((work) => {
-      if (!work.category || seen.has(work.category)) {
+    usedNames.forEach((name) => {
+      if (!name || seen.has(name)) {
         return;
       }
 
-      seen.add(work.category);
-      categories.push(work.category);
+      seen.add(name);
+      categories.push(name);
     });
 
     return categories;
+  }
+
+  /**
+   * @param {string} search
+   * @param {string[]} categories
+   * @returns {string}
+   */
+  function filterFromSearch(search, categories) {
+    if (window.WorksCategories) {
+      return window.WorksCategories.resolveActiveWorksListFilter(
+        categories,
+        window.WorksCategories.readWorksListCategoryFilter(search),
+      );
+    }
+
+    return ALL_FILTER;
+  }
+
+  /**
+   * @param {string} filter
+   * @returns {string}
+   */
+  function urlForFilter(filter) {
+    const pathname = window.location.pathname || "/works.html";
+
+    if (window.WorksCategories) {
+      return window.WorksCategories.buildWorksListUrl(pathname, filter);
+    }
+
+    return pathname;
+  }
+
+  /**
+   * @param {HTMLElement} listEl
+   * @param {string} filter
+   */
+  function applyListFilter(listEl, filter) {
+    listEl.querySelectorAll(".works-entry").forEach((article) => {
+      const category = article instanceof HTMLElement ? article.dataset.category || "" : "";
+      article.hidden = !(filter === ALL_FILTER || category === filter);
+    });
+  }
+
+  /**
+   * @param {HTMLElement} categoryListEl
+   * @param {string} filter
+   */
+  function syncCategoryButtons(categoryListEl, filter) {
+    categoryListEl.querySelectorAll(".works-category-link").forEach((button) => {
+      const isCurrent = button.getAttribute("data-filter") === filter;
+      button.classList.toggle("is-current", isCurrent);
+      button.setAttribute("aria-pressed", isCurrent ? "true" : "false");
+    });
   }
 
   /**
@@ -159,7 +222,11 @@
    * @param {string[]} categories
    */
   function renderCategoryNav(navEl, listEl, categoryListEl, categories) {
-    if (categories.length === 0) {
+    const showNav = window.WorksCategories
+      ? window.WorksCategories.shouldShowWorksCategoryNav(categories)
+      : categories.length > 0;
+
+    if (!showNav) {
       navEl.hidden = true;
       categoryListEl.innerHTML = "";
       return;
@@ -170,7 +237,7 @@
     const allItem = document.createElement("li");
     const allButton = document.createElement("button");
     allButton.type = "button";
-    allButton.className = "works-category-link is-current";
+    allButton.className = "works-category-link";
     allButton.dataset.filter = ALL_FILTER;
     allButton.textContent = "すべて";
     allItem.appendChild(allButton);
@@ -187,19 +254,41 @@
       categoryListEl.appendChild(item);
     });
 
+    /**
+     * @param {string} filter
+     * @param {{ updateHistory?: boolean, replace?: boolean }} [options]
+     */
+    function applyFilter(filter, options) {
+      const nextOptions = options || {};
+      syncCategoryButtons(categoryListEl, filter);
+      applyListFilter(listEl, filter);
+
+      if (nextOptions.updateHistory) {
+        const nextUrl = urlForFilter(filter);
+        const currentUrl = `${window.location.pathname}${window.location.search}`;
+
+        if (nextOptions.replace) {
+          window.history.replaceState({ category: filter }, "", nextUrl);
+        } else if (nextUrl !== currentUrl) {
+          window.history.pushState({ category: filter }, "", nextUrl);
+        }
+      }
+    }
+
     categoryListEl.querySelectorAll(".works-category-link").forEach((button) => {
       button.addEventListener("click", () => {
         const filter = button.getAttribute("data-filter") || ALL_FILTER;
-
-        categoryListEl.querySelectorAll(".works-category-link").forEach((item) => {
-          item.classList.toggle("is-current", item === button);
-        });
-
-        listEl.querySelectorAll(".works-entry").forEach((article) => {
-          const category = article instanceof HTMLElement ? article.dataset.category || "" : "";
-          article.hidden = !(filter === ALL_FILTER || category === filter);
-        });
+        applyFilter(filter, { updateHistory: true });
       });
+    });
+
+    window.addEventListener("popstate", () => {
+      applyFilter(filterFromSearch(window.location.search, categories));
+    });
+
+    applyFilter(filterFromSearch(window.location.search, categories), {
+      updateHistory: true,
+      replace: true,
     });
 
     navEl.hidden = false;
@@ -225,7 +314,12 @@
       categoryNavEl.hidden = true;
     }
 
-    const fetched = await window.CmsLists.fetchWorksIndex("works-list");
+    const [fetched, canonicalNames] = await Promise.all([
+      window.CmsLists.fetchWorksIndex("works-list"),
+      window.WorksCategories
+        ? window.WorksCategories.loadCanonicalWorksCategoryNames(fetch, window.location.href)
+        : Promise.resolve(null),
+    ]);
 
     if (!fetched.ok) {
       showMessage(messageEl, listEl, EMPTY_MESSAGE);
@@ -246,7 +340,7 @@
     showList(messageEl, listEl);
 
     if (categoryNavEl instanceof HTMLElement && categoryListEl instanceof HTMLElement) {
-      renderCategoryNav(categoryNavEl, listEl, categoryListEl, uniqueCategories(works));
+      renderCategoryNav(categoryNavEl, listEl, categoryListEl, visibleCategories(works, canonicalNames));
     }
   }
 
