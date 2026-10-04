@@ -2,10 +2,6 @@
   "schemaVersion": 1,
   "categories": [
     {
-      "id": 2,
-      "name": "テスト②"
-    },
-    {
       "id": 1,
       "name": "テスト①"
     }
