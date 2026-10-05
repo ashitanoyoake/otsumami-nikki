@@ -1259,15 +1259,28 @@ button.works-category-link {
   margin-bottom: 1.8rem;
 }
 
-.work-detail-category {
+.work-detail__intro {
+  margin-bottom: 0;
+}
+
+.work-detail-category,
+.work-detail__category {
   display: block;
   margin-bottom: 0.45rem;
   font-size: 0.75rem;
   letter-spacing: 0.06em;
   color: var(--accent);
+  text-decoration: none;
 }
 
-.work-detail-title {
+a.work-detail__category:hover,
+a.work-detail__category:focus-visible {
+  color: var(--accent);
+  text-decoration: underline;
+}
+
+.work-detail-title,
+.work-detail__title {
   margin: 0 0 0.7rem;
   font-family: "Zen Maru Gothic", sans-serif;
   font-size: 1.35rem;
@@ -1284,19 +1297,24 @@ button.works-category-link {
   line-height: 1.9;
 }
 
-.work-detail-hero {
+.work-detail-hero,
+.work-detail__hero,
+.work-detail__hero--plain {
   margin: 0;
 }
 
 .work-detail-hero-image,
-.work-detail-hero-placeholder {
+.work-detail-hero-placeholder,
+.work-detail__hero-image,
+.work-detail__hero-empty {
   display: block;
   width: 100%;
   aspect-ratio: 16 / 9;
   object-fit: cover;
 }
 
-.work-detail-hero-placeholder {
+.work-detail-hero-placeholder,
+.work-detail__hero-empty {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1306,7 +1324,8 @@ button.works-category-link {
   letter-spacing: 0.06em;
 }
 
-.work-detail-heading {
+.work-detail-heading,
+.work-detail__section-title {
   margin: 0 0 1.2rem;
   font-family: "Zen Maru Gothic", sans-serif;
   font-size: 0.95rem;
@@ -1343,7 +1362,9 @@ button.works-category-link {
   color: var(--text);
 }
 
-.work-detail-body p {
+.work-detail-body p,
+.work-detail__body p,
+.work-detail__body blockquote {
   margin: 0 0 1rem;
   font-size: 0.9rem;
   color: var(--text);
@@ -1351,11 +1372,33 @@ button.works-category-link {
   letter-spacing: 0.04em;
 }
 
-.work-detail-body p:last-child {
+.work-detail-body p:last-child,
+.work-detail__body p:last-child,
+.work-detail__body blockquote:last-child {
   margin-bottom: 0;
 }
 
-.work-detail-gallery-list {
+.work-detail__body h2 {
+  margin: 0 0 1rem;
+  font-family: "Zen Maru Gothic", sans-serif;
+  font-size: 0.95rem;
+  font-weight: 400;
+  letter-spacing: 0.08em;
+  color: var(--text);
+}
+
+.work-detail__body figure {
+  margin: 0 0 1rem;
+}
+
+.work-detail__body img {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.work-detail-gallery-list,
+.work-gallery {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 1rem;
@@ -1364,12 +1407,14 @@ button.works-category-link {
   list-style: none;
 }
 
-.work-detail-gallery-item {
+.work-detail-gallery-item,
+.work-gallery__item {
   margin: 0;
 }
 
 .work-detail-gallery-image,
-.work-detail-gallery-placeholder {
+.work-detail-gallery-placeholder,
+.work-gallery__image {
   display: block;
   width: 100%;
   aspect-ratio: 1 / 1;
@@ -1396,6 +1441,131 @@ button.works-category-link {
 .work-detail-back a {
   color: var(--accent);
   font-size: 0.85rem;
+}
+
+.work-detail__article {
+  display: flex;
+  flex-direction: column;
+  gap: 1.8rem;
+}
+
+.work-detail__header {
+  margin: 0;
+}
+
+.work-detail__header ~ .work-detail__hero,
+.work-detail__header ~ .work-detail__browser,
+.work-detail__header ~ .work-detail__production,
+.work-detail__header ~ .work-detail__intro,
+.work-detail__header ~ .work-detail__gallery,
+.work-detail__header ~ .work-detail__link {
+  margin-top: 1.8rem;
+}
+
+.work-detail__title-row {
+  display: flex;
+  flex-direction: column-reverse;
+  align-items: flex-start;
+}
+
+.work-detail__production {
+  margin: 0;
+}
+
+.work-detail__production-item {
+  display: grid;
+  grid-template-columns: 7.5rem 1fr;
+  gap: 1rem;
+  padding: 0.75rem 0;
+  border-bottom: 1px solid #eee;
+}
+
+.work-detail__production-item:first-child {
+  border-top: 1px solid #eee;
+}
+
+.work-detail__production-item .work-detail__section-title {
+  margin: 0;
+  font-family: inherit;
+  font-size: 0.8rem;
+  letter-spacing: 0.04em;
+  color: var(--text-muted);
+}
+
+.work-detail__production-text {
+  margin: 0;
+  font-size: 0.88rem;
+  color: var(--text);
+}
+
+.work-detail__tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem 0.6rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.work-detail__tag {
+  font-size: 0.88rem;
+  color: var(--text);
+}
+
+.work-detail__gallery {
+  margin: 0;
+}
+
+.work-detail__browser {
+  margin: 0;
+  overflow: hidden;
+  border: 1px solid var(--border);
+}
+
+.work-detail__browser-bar {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.45rem 0.7rem;
+  background-color: var(--placeholder-bg);
+  border-bottom: 1px solid var(--border);
+}
+
+.work-detail__browser-dot {
+  display: block;
+  width: 0.45rem;
+  height: 0.45rem;
+  border-radius: 50%;
+  background-color: #ddd;
+}
+
+.work-detail__browser-screen {
+  display: block;
+}
+
+.work-detail__browser-screen .work-detail__hero-image {
+  aspect-ratio: 16 / 9;
+}
+
+.work-detail__link {
+  margin: 0;
+}
+
+.work-detail__link-button {
+  display: inline-block;
+  padding: 0.45rem 1.1rem;
+  font-size: 0.85rem;
+  letter-spacing: 0.04em;
+  color: var(--accent);
+  text-decoration: none;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+}
+
+.work-detail__link-button:hover,
+.work-detail__link-button:focus-visible {
+  color: var(--accent);
+  border-color: var(--accent);
 }
 
 
@@ -1985,12 +2155,15 @@ button.blog-category-link {
     padding-top: 1.2rem;
   }
 
-  .work-detail-title {
+  .work-detail-title,
+  .work-detail__title {
     font-size: 1.18rem;
   }
 
   .work-detail-hero-image,
-  .work-detail-hero-placeholder {
+  .work-detail-hero-placeholder,
+  .work-detail__hero-image,
+  .work-detail__hero-empty {
     width: 100%;
     height: auto;
   }
@@ -1999,12 +2172,14 @@ button.blog-category-link {
     margin: 2rem 0;
   }
 
-  .work-detail-meta-row {
+  .work-detail-meta-row,
+  .work-detail__production-item {
     grid-template-columns: 5.5rem 1fr;
     gap: 0.7rem;
   }
 
-  .work-detail-gallery-list {
+  .work-detail-gallery-list,
+  .work-gallery {
     grid-template-columns: 1fr;
   }
 
