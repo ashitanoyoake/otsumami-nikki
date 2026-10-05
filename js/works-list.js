@@ -224,7 +224,7 @@
   function renderCategoryNav(navEl, listEl, categoryListEl, categories) {
     const showNav = window.WorksCategories
       ? window.WorksCategories.shouldShowWorksCategoryNav(categories)
-      : categories.length > 0;
+      : true;
 
     if (!showNav) {
       navEl.hidden = true;
@@ -328,8 +328,18 @@
 
     const works = window.CmsLists.parseWorksIndex(fetched.data);
 
-    if (!works || works.length === 0) {
+    if (!works) {
       showMessage(messageEl, listEl, EMPTY_MESSAGE);
+      return;
+    }
+
+    if (works.length === 0) {
+      showMessage(messageEl, listEl, EMPTY_MESSAGE);
+
+      if (categoryNavEl instanceof HTMLElement && categoryListEl instanceof HTMLElement) {
+        renderCategoryNav(categoryNavEl, listEl, categoryListEl, visibleCategories([], canonicalNames));
+      }
+
       return;
     }
 

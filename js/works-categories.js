@@ -200,8 +200,8 @@
    * @param {string[]} visibleCategories
    * @returns {boolean}
    */
-  function shouldShowWorksCategoryNav(visibleCategories) {
-    return visibleCategories.length > 0;
+  function shouldShowWorksCategoryNav(_visibleCategories) {
+    return true;
   }
 
   /**

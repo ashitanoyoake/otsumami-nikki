@@ -1,3 +1,6 @@
+const fs = require("fs");
+const path = require("path");
+
 const {
   parseWorksCategoriesDocument,
   collectUsedWorkCategoryNames,
@@ -86,11 +89,32 @@ function runOtsumamiWorksListCases() {
     parseWorksCategoriesDocument({ schemaVersion: 1, categories: [] }),
     [],
   );
-  assert(shouldShowWorksCategoryNav(emptyVisible) === false, "O empty works hide the nav");
-  assert(emptyVisible.length === 0, "P empty works keep no category buttons");
+  assert(emptyVisible.length === 0, "O empty works keep no extra category buttons");
+  assert(shouldShowWorksCategoryNav(emptyVisible) === true, "O empty works still show the nav");
+  assert(worksCategoryNavLabels(emptyVisible).join("/") === "すべて", "O empty works show すべて only");
+
+  const unusedOnlyVisible = resolveVisibleWorksCategories(
+    parseWorksCategoriesDocument({
+      schemaVersion: 1,
+      categories: [
+        { id: 1, name: "仕事" },
+        { id: 2, name: "オリジナル" },
+      ],
+    }),
+    [],
+  );
+  assert(unusedOnlyVisible.length === 0, "O unused canonical stays hidden when no works");
+  assert(worksCategoryNavLabels(unusedOnlyVisible).join("/") === "すべて", "O unused-only canonical still shows すべて only");
 
   const emptyMessage = "現在公開中のイラストはありません。";
   assert(emptyMessage === "現在公開中のイラストはありません。", "P empty message stays the same");
+  const worksListJs = fs.readFileSync(path.join(__dirname, "works-list.js"), "utf8");
+  assert(
+    /works\.length === 0[\s\S]*renderCategoryNav\(categoryNavEl, listEl, categoryListEl, visibleCategories\(\[\]/.test(
+      worksListJs,
+    ),
+    "P empty works still render the category nav",
+  );
 
   const fallback = resolveVisibleWorksCategories(null, ["旧カテゴリー", "ご飯"]);
   assert(fallback.join("/") === "旧カテゴリー/ご飯", "Q missing canonical falls back to first-seen");
