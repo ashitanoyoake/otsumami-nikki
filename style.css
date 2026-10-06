@@ -19,15 +19,6 @@
   --stitch: var(--stitch-width) var(--stitch-style) var(--stitch-color);
 }
 
-.stitch-rule {
-  display: block;
-  width: 100%;
-  height: 0;
-  margin: 2.4rem 0;
-  border: 0;
-  border-top: var(--stitch);
-}
-
 body {
   margin: 0;
   background-color: #ffffff;
@@ -1787,60 +1778,35 @@ button.blog-category-link {
 
 
 /* ========================================
-   お問い合わせフォーム
+   お問い合わせ：メール案内
    ======================================== */
 
-.contact-form p {
-  margin: 0 0 1.8rem;
+.contact-mail {
+  margin: 0;
+  text-align: center;
 }
 
-.contact-form p:last-child {
-  margin-bottom: 0;
-}
-
-.contact-form label {
-  display: block;
-  margin-bottom: 0.4rem;
-  font-size: 0.82rem;
-  color: var(--text-muted);
-}
-
-.contact-form input,
-.contact-form textarea {
-  width: 100%;
-  padding: 0.5rem 0;
-  border: none;
-  border-bottom: 1px solid #ddd;
-  background: transparent;
-  font-size: 0.95rem;
-  font-family: inherit;
-  color: var(--text);
-  box-sizing: border-box;
-  resize: vertical;
-}
-
-.contact-form input:focus,
-.contact-form textarea:focus {
-  outline: none;
-  border-bottom-color: var(--accent);
-}
-
-.contact-form button {
-  display: block;
-  margin: 2rem auto 0;
-  padding: 0.65rem 2.5rem;
-  background-color: var(--text);
-  color: #ffffff;
-  border: none;
+.contact-mail-link {
+  display: inline-block;
+  max-width: min(100%, 28rem);
+  padding: 0.7rem 1.5rem;
+  border: var(--stitch);
   border-radius: 2rem;
-  font-size: 0.85rem;
-  font-family: inherit;
-  letter-spacing: 0.1em;
-  cursor: pointer;
+  background-color: #ffffff;
+  color: var(--text);
+  font-size: 0.9rem;
+  letter-spacing: 0.04em;
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+  box-sizing: border-box;
 }
 
-.contact-form button:hover {
-  background-color: var(--accent);
+.contact-mail-link:hover,
+.contact-mail-link:focus-visible {
+  background-color: var(--accent-light);
+  color: var(--accent);
+  text-decoration: none;
+  outline: none;
 }
 
 
@@ -2166,10 +2132,6 @@ button.blog-category-link {
   .work-detail__hero-empty {
     width: 100%;
     height: auto;
-  }
-
-  .stitch-rule {
-    margin: 2rem 0;
   }
 
   .work-detail-meta-row,
