@@ -1790,7 +1790,7 @@ button.blog-category-link {
   display: inline-block;
   max-width: min(100%, 28rem);
   padding: 0.7rem 1.5rem;
-  border: var(--stitch);
+  border: 1px dashed rgba(200, 135, 74, 0.4);
   border-radius: 2rem;
   background-color: #ffffff;
   color: var(--text);
