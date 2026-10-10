@@ -613,10 +613,12 @@ main {
   width: 100%;
   aspect-ratio: 3 / 4;
   margin: 0;
+  padding: 0.45rem;
   overflow: hidden;
-  border: 1px solid #f0ebe6;
+  border: var(--stitch);
   border-radius: 4px;
   background-color: #faf8f6;
+  box-sizing: border-box;
 }
 
 .home-works-item img {
@@ -1136,10 +1138,12 @@ button.works-category-link {
   width: 100%;
   aspect-ratio: 3 / 4;
   margin: 0;
+  padding: 0.45rem;
   overflow: hidden;
-  border: 1px solid #f0ebe6;
+  border: var(--stitch);
   border-radius: 4px;
   background-color: #faf8f6;
+  box-sizing: border-box;
 }
 
 .works-entry-image,
@@ -1289,9 +1293,22 @@ a.work-detail__category:focus-visible {
 }
 
 .work-detail-hero,
-.work-detail__hero,
-.work-detail__hero--plain {
+.work-detail__hero {
   margin: 0;
+}
+
+.work-detail__hero--plain {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0;
+  padding: 0.9rem;
+  overflow: hidden;
+  border: var(--stitch);
+  border-radius: 4px;
+  background-color: #faf8f6;
+  box-sizing: border-box;
+  max-width: 100%;
 }
 
 .work-detail-hero-image,
@@ -1302,6 +1319,15 @@ a.work-detail__category:focus-visible {
   width: 100%;
   aspect-ratio: 16 / 9;
   object-fit: cover;
+}
+
+.work-detail__hero--plain .work-detail__hero-image {
+  width: auto;
+  max-width: 100%;
+  height: auto;
+  max-height: min(72vh, 40rem);
+  aspect-ratio: auto;
+  object-fit: contain;
 }
 
 .work-detail-hero-placeholder,
@@ -1685,6 +1711,17 @@ a.work-detail__category:focus-visible {
   overflow: visible;
 }
 
+.work-gallery__item--plain {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.7rem;
+  border: var(--stitch);
+  border-radius: 4px;
+  background-color: #faf8f6;
+  box-sizing: border-box;
+}
+
 .work-gallery__item--phone {
   max-width: 13rem;
   margin-inline: auto;
@@ -1692,7 +1729,11 @@ a.work-detail__category:focus-visible {
 
 .work-gallery__item--pc .work-detail__hero-image,
 .work-gallery__item--plain .work-detail__hero-image,
+.work-gallery__item--plain .work-gallery__image,
 .work-gallery__item--phone .work-media__phone-image {
+  width: auto;
+  max-width: 100%;
+  height: auto;
   aspect-ratio: auto;
   object-fit: contain;
 }
