@@ -1446,6 +1446,7 @@ a.work-detail__category:focus-visible {
 
 .work-detail__header ~ .work-detail__hero,
 .work-detail__header ~ .work-detail__browser,
+.work-detail__header ~ .work-detail__media,
 .work-detail__header ~ .work-detail__production,
 .work-detail__header ~ .work-detail__intro,
 .work-detail__header ~ .work-detail__gallery,
@@ -1536,6 +1537,151 @@ a.work-detail__category:focus-visible {
 
 .work-detail__browser-screen .work-detail__hero-image {
   aspect-ratio: 16 / 9;
+}
+
+.work-detail__media {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  width: 100%;
+  min-width: 0;
+}
+
+.work-detail__device-pair {
+  display: grid;
+  grid-template-columns: minmax(0, 1.7fr) minmax(8.5rem, 0.7fr);
+  gap: 1.1rem;
+  align-items: end;
+  width: 100%;
+}
+
+.work-detail__device-pair-pc,
+.work-detail__device-pair-phone {
+  min-width: 0;
+}
+
+.work-detail__device-pair-phone {
+  max-width: 14rem;
+  width: 100%;
+  justify-self: end;
+}
+
+.work-media__zoom {
+  display: block;
+  width: 100%;
+  padding: 0;
+  margin: 0;
+  border: 0;
+  background: transparent;
+  cursor: zoom-in;
+}
+
+.work-media__zoom:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.work-media__frame--pc .work-detail__hero-image,
+.work-media__frame--plain .work-detail__hero-image,
+.work-media__phone-image {
+  display: block;
+  width: 100%;
+  height: auto;
+  aspect-ratio: auto;
+  object-fit: contain;
+}
+
+.work-media__phone-shell {
+  padding: 0.7rem;
+  border: 2px solid #d7d0c7;
+  border-radius: 1.65rem;
+  background: linear-gradient(180deg, #fbfaf7 0%, #f1ebe3 100%);
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.06);
+}
+
+.work-media__phone-notch {
+  width: 28%;
+  height: 0.34rem;
+  margin: 0 auto 0.5rem;
+  border-radius: 999px;
+  background: #cfc7bc;
+}
+
+.work-media__phone-screen {
+  overflow: hidden;
+  border-radius: 0.95rem;
+  background: #fff;
+}
+
+.work-gallery__item--pc,
+.work-gallery__item--phone,
+.work-gallery__item--plain {
+  overflow: visible;
+}
+
+.work-gallery__item--phone {
+  max-width: 13rem;
+  margin-inline: auto;
+}
+
+.work-gallery__item--pc .work-detail__hero-image,
+.work-gallery__item--plain .work-detail__hero-image,
+.work-gallery__item--phone .work-media__phone-image {
+  aspect-ratio: auto;
+  object-fit: contain;
+}
+
+.work-lightbox {
+  max-width: min(96vw, 980px);
+  max-height: 92vh;
+  padding: 0.8rem;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: #fff;
+}
+
+.work-lightbox::backdrop {
+  background: rgba(0, 0, 0, 0.45);
+}
+
+.work-lightbox__form {
+  display: flex;
+  justify-content: flex-end;
+  margin: 0 0 0.5rem;
+}
+
+.work-lightbox__close {
+  appearance: none;
+  padding: 0.3rem 0.75rem;
+  font: inherit;
+  font-size: 0.8rem;
+  color: var(--text);
+  background: var(--placeholder-bg);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.work-lightbox__image {
+  display: block;
+  max-width: 100%;
+  max-height: calc(92vh - 3.2rem);
+  width: auto;
+  height: auto;
+  margin-inline: auto;
+  object-fit: contain;
+}
+
+@media (max-width: 768px) {
+  .work-detail__device-pair {
+    grid-template-columns: minmax(0, 1fr);
+    justify-items: center;
+  }
+
+  .work-detail__device-pair-phone {
+    max-width: 12.5rem;
+    justify-self: center;
+  }
 }
 
 .work-detail__link {
