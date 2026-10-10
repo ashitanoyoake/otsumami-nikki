@@ -1,4 +1,34 @@
 {
   "schemaVersion": 1,
-  "works": []
+  "works": [
+    {
+      "id": 1,
+      "title": "端末間共有テスト",
+      "slug": "端末間共有テスト",
+      "status": "公開",
+      "publishedAt": "2026-10-10",
+      "category": "",
+      "summary": "",
+      "featuredImage": "/images/posts/548115bd.png",
+      "additionalImages": [
+        "/images/posts/b2094074.png",
+        "/images/posts/a29de568.png"
+      ],
+      "producedAt": "",
+      "productionInfo": {},
+      "contentBlocks": [
+        {
+          "id": "block-1791535861830-2",
+          "type": "paragraph",
+          "text": "PCで作成した制作紹介の共有下書きです。\n\niPhoneから編集しました。"
+        }
+      ],
+      "featuredImageDisplayKind": "pc",
+      "additionalImageDisplayKinds": [
+        "pc",
+        "phone"
+      ],
+      "updatedAt": "2026-10-10T08:58:18.571Z"
+    }
+  ]
 }
