@@ -1551,19 +1551,85 @@ a.work-detail__category:focus-visible {
   display: grid;
   grid-template-columns: minmax(0, 1.7fr) minmax(8.5rem, 0.7fr);
   gap: 1.1rem;
-  align-items: end;
+  align-items: stretch;
   width: 100%;
 }
 
 .work-detail__device-pair-pc,
 .work-detail__device-pair-phone {
+  display: flex;
+  flex-direction: column;
   min-width: 0;
+  min-height: 0;
+  height: 100%;
 }
 
 .work-detail__device-pair-phone {
   max-width: 14rem;
   width: 100%;
   justify-self: end;
+}
+
+.work-detail__device-pair .work-media__frame--pc,
+.work-detail__device-pair .work-media__frame--phone {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-height: 0;
+  height: 100%;
+}
+
+.work-detail__device-pair .work-detail__browser {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-height: 0;
+  height: 100%;
+}
+
+.work-detail__device-pair .work-detail__browser-screen {
+  display: flex;
+  flex: 1 1 auto;
+  align-items: center;
+  justify-content: center;
+  min-height: 0;
+  background-color: var(--placeholder-bg);
+}
+
+.work-detail__device-pair .work-media__phone-shell {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  box-sizing: border-box;
+  min-height: 0;
+  height: 100%;
+}
+
+.work-detail__device-pair .work-media__phone-screen {
+  display: flex;
+  flex: 1 1 auto;
+  align-items: center;
+  justify-content: center;
+  min-height: 0;
+}
+
+.work-detail__device-pair .work-media__zoom {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+}
+
+.work-detail__device-pair .work-detail__browser-screen .work-detail__hero-image,
+.work-detail__device-pair .work-media__frame--pc .work-detail__hero-image,
+.work-detail__device-pair .work-media__phone-image {
+  width: 100%;
+  height: 100%;
+  max-height: 100%;
+  aspect-ratio: auto;
+  object-fit: contain;
 }
 
 .work-media__zoom {
@@ -1675,7 +1741,32 @@ a.work-detail__category:focus-visible {
 @media (max-width: 768px) {
   .work-detail__device-pair {
     grid-template-columns: minmax(0, 1fr);
+    align-items: start;
     justify-items: center;
+  }
+
+  .work-detail__device-pair-pc,
+  .work-detail__device-pair-phone,
+  .work-detail__device-pair .work-media__frame--pc,
+  .work-detail__device-pair .work-media__frame--phone,
+  .work-detail__device-pair .work-detail__browser,
+  .work-detail__device-pair .work-media__phone-shell {
+    height: auto;
+    flex: 0 1 auto;
+  }
+
+  .work-detail__device-pair .work-detail__browser-screen,
+  .work-detail__device-pair .work-media__phone-screen,
+  .work-detail__device-pair .work-media__zoom {
+    flex: 0 1 auto;
+    height: auto;
+  }
+
+  .work-detail__device-pair .work-detail__browser-screen .work-detail__hero-image,
+  .work-detail__device-pair .work-media__frame--pc .work-detail__hero-image,
+  .work-detail__device-pair .work-media__phone-image {
+    height: auto;
+    max-height: none;
   }
 
   .work-detail__device-pair-phone {
