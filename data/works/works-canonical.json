@@ -23,12 +23,12 @@
           "text": "PCで作成した制作紹介の共有下書きです。\n\niPhoneから編集しました。"
         }
       ],
-      "featuredImageDisplayKind": "pc",
+      "featuredImageDisplayKind": "normal",
       "additionalImageDisplayKinds": [
-        "pc",
-        "phone"
+        "normal",
+        "normal"
       ],
-      "updatedAt": "2026-10-10T08:58:18.571Z"
+      "updatedAt": "2026-10-10T09:01:02.330Z"
     }
   ]
 }
