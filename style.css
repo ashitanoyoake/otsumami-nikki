@@ -617,7 +617,7 @@ main {
   overflow: hidden;
   border: var(--stitch);
   border-radius: 4px;
-  background-color: #faf8f6;
+  background-color: #fff;
   box-sizing: border-box;
 }
 
@@ -1142,7 +1142,7 @@ button.works-category-link {
   overflow: hidden;
   border: var(--stitch);
   border-radius: 4px;
-  background-color: #faf8f6;
+  background-color: #fff;
   box-sizing: border-box;
 }
 
@@ -1306,7 +1306,7 @@ a.work-detail__category:focus-visible {
   overflow: hidden;
   border: var(--stitch);
   border-radius: 4px;
-  background-color: #faf8f6;
+  background-color: #fff;
   box-sizing: border-box;
   max-width: 100%;
 }
@@ -1718,7 +1718,7 @@ a.work-detail__category:focus-visible {
   padding: 0.7rem;
   border: var(--stitch);
   border-radius: 4px;
-  background-color: #faf8f6;
+  background-color: #fff;
   box-sizing: border-box;
 }
 
