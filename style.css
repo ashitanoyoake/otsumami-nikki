@@ -2076,6 +2076,7 @@ button.blog-category-link {
   letter-spacing: 0.04em;
   line-height: 1.6;
   overflow-wrap: anywhere;
+  word-break: break-word;
   box-sizing: border-box;
 }
 
@@ -2097,6 +2098,11 @@ button.blog-category-link {
   main,
   .content-inner {
     padding-bottom: 3.25rem;
+  }
+
+  .contact-mail-link {
+    font-size: 0.875rem;
+    padding: 0.6rem 1.1rem;
   }
 
   /* --- ヘッダー・ナビ --- */
